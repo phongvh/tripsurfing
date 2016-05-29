@@ -99,7 +99,7 @@ public class ModelServerImpl implements ModelServer {
     }
 
 
-    public List<String> recognizeMentions(String sentence) throws RemoteException {
+    public Map<String, List<String>> recognizeMentions(String sentence) throws RemoteException {
         if (dictionary == null) {
             loadDictionary();
         }
@@ -110,7 +110,7 @@ public class ModelServerImpl implements ModelServer {
         // The tagged string
         String tagged = tagger.tagString(sentence);
         // TODO: implement tokenizer or call Stanford tokenizer
-        List<String> res = new ArrayList<String>();
+        Map<String, List<String>> res = new HashMap<String, List<String>>();
         String[] tokens = tagged.split(" ");
         List<int[]> names = getNames(sentence);
         boolean[] isNames = new boolean[tokens.length];
@@ -134,8 +134,9 @@ public class ModelServerImpl implements ModelServer {
                     System.out.println("canName: " + canName); 
 //                    if (dictionary.contains(canName.toLowerCase()))
 //                    	res.add(canName);
-                    if(lsh.deduplicate(Common.getCounterAtTokenLevel(canName.toLowerCase())).size() > 0)
-                    	res.add(canName);
+                    List<String> candidates = lsh.deduplicate(Common.getCounterAtTokenLevel(canName.toLowerCase()));
+                    if(candidates.size() > 0)
+                    	res.put(canName, candidates);
                 }
             }
             while (nameIndex < names.size() &&
@@ -150,7 +151,9 @@ public class ModelServerImpl implements ModelServer {
                     for (int t = 1; t < j && i + t < tokens.length; t++)
                         s += " " + tokens[i + t].split("_")[0];
                     if (dictionary.contains(s.toLowerCase())) {
-                        res.add(s);
+                    	List<String> candidates = new ArrayList<String>();
+                    	candidates.add(s);
+                        res.put(s, candidates);
                         nextPos = i + j;
                         for (int t = 0; t < j && i + t < tokens.length; t++)
                             isNames[i + t] = true;

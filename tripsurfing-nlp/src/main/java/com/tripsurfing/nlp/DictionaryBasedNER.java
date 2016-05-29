@@ -9,6 +9,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 
 import com.tripsurfing.rmiserver.ModelServer;
@@ -127,7 +128,7 @@ public class DictionaryBasedNER {
             // Retrieve by column name
             int id = rs.getInt("id");
             String quote = rs.getString("content");
-            List<String> names = server.recognizeMentions(quote);
+            Map<String, List<String>> names = server.recognizeMentions(quote);
             if (names.size() > 0) {
                 Gson gson = new Gson();
                 String res = gson.toJson(names);
@@ -170,7 +171,7 @@ public class DictionaryBasedNER {
             }
             // get text
             String text = getText(url);
-            List<String> names = server.recognizeMentions(text);
+            Map<String, List<String>> names = server.recognizeMentions(text);
             if (names.size() > 0) {
                 Gson gson = new Gson();
                 String res = gson.toJson(names);
