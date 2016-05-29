@@ -125,7 +125,8 @@ public class ModelServerImpl implements ModelServer {
                     String s = "";
                     for (int t = names.get(nameIndex)[0]; t < names.get(nameIndex)[1]; t++)
                         s += " " + tokens[t].split("_")[0];
-                    String canName = s.substring(1); 
+                    String canName = s.substring(1);
+                    System.out.println("canName: " + canName); 
                     if (dictionary.contains(canName.toLowerCase()))
                     	res.add(canName);
                 }

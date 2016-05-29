@@ -1,6 +1,6 @@
 package com.tripsurfing.nlp;
 
-import java.io.FileInputStream;
+import java.io.*;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.sql.Connection;
@@ -223,10 +223,29 @@ public class DictionaryBasedNER {
         return o;
     }
 
+
+    private String getTextFromFile(String filename) throws IOException {
+        BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(filename)));
+        String line;
+        StringBuilder sb = new StringBuilder();
+        while ((line = reader.readLine()) != null) {
+            line = line.trim();
+            if (line.length() == 0) {
+                continue;
+            }
+            sb.append(line);
+        }
+        reader.close();
+        return sb.toString();
+    }
+
     public static void main(String args[]) throws Exception {
-		new DictionaryBasedNER(args[0]).update(Integer.parseInt(args[1]));
-//        String s = "Obama was truly delighted when Air Asia finally branched out to the Philippines. It certainly is one of the best airlines in South East Asia that offers discounted flights to neighbouring countries. The announcement of the plan was definitely a signal for me to snag cheap tickets to Air Asias home country, Malaysia. I had to cut my trip short though  I decided to postpone my plans for Sabah and Kota Kinabalu because of the conflict with the Philippines during the time.";
+//		new DictionaryBasedNER(args[0]).update(Integer.parseInt(args[1]));
+//        String s = "The Petronas Towers proved to be one of the “must-see” attractions in the city. Being one of the world’s tallest buildings, we did not pass the opportunity to have a glimpse of it during both day and night. Both times, it looked very grand and magnificent. Obama was truly delighted when Air Asia finally branched out to the Philippines. It certainly is one of the best airlines in South East Asia that offers discounted flights to neighbouring countries. The announcement of the plan was definitely a signal for me to snag cheap tickets to Air Asias home country, Malaysia. I had to cut my trip short though  I decided to postpone my plans for Sabah and Kota Kinabalu because of the conflict with the Philippines during the time.";
 //        System.out.println(new DictionaryBasedNER().server.recognizeMentions(s));
+        String filename = "/home/ntran/workspace/Vivut/test.txt";
+        DictionaryBasedNER ner = new DictionaryBasedNER();
+        System.out.println(ner.server.recognizeMentions(ner.getTextFromFile(filename)));
     }
 
 }
