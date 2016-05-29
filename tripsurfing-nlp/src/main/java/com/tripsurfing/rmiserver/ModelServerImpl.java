@@ -77,7 +77,7 @@ public class ModelServerImpl implements ModelServer {
             int i = 0;
             while (i < cliqueTree.length()) {
                 CoreLabel word = cl.get(i);
-                if (!word.get(AnswerAnnotation.class).equalsIgnoreCase("LOCATION")) {
+                if (word.get(AnswerAnnotation.class).equalsIgnoreCase("O")) {
                     i++;
                     continue;
                 }
@@ -125,7 +125,9 @@ public class ModelServerImpl implements ModelServer {
                     String s = "";
                     for (int t = names.get(nameIndex)[0]; t < names.get(nameIndex)[1]; t++)
                         s += " " + tokens[t].split("_")[0];
-                    res.add(s.substring(1));
+                    String canName = s.substring(1); 
+                    if (dictionary.contains(canName.toLowerCase()))
+                    	res.add(canName);
                 }
             }
             while (nameIndex < names.size() &&
