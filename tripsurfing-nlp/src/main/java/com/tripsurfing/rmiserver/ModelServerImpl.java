@@ -6,6 +6,9 @@ import edu.stanford.nlp.ie.crf.CRFCliqueTree;
 import edu.stanford.nlp.ling.CoreAnnotations.AnswerAnnotation;
 import edu.stanford.nlp.ling.CoreLabel;
 import edu.stanford.nlp.tagger.maxent.MaxentTagger;
+import tk.lsh.Common;
+import tk.lsh.LSHTable;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,6 +27,7 @@ public class ModelServerImpl implements ModelServer {
     private MaxentTagger tagger;
     private int LIMIT_LENGTH = 6;
     private CRFClassifier<CoreLabel> classifier;
+    private LSHTable lsh;
 
     public ModelServerImpl() {
         try {
@@ -42,13 +46,13 @@ public class ModelServerImpl implements ModelServer {
             // TODO: handle exception
         }
     }
-
-
+    
     private void loadDictionary() {
         BufferedReader reader = new BufferedReader(new InputStreamReader(this.getClass().
                 getClassLoader().getResourceAsStream("tripsurfing.dict")));
 
         dictionary = new HashSet<String>();
+        lsh = new LSHTable(2, 8, 100, 999999999, 0.5);
         try {
             String line;
             while ((line = reader.readLine()) != null) {
@@ -57,6 +61,7 @@ public class ModelServerImpl implements ModelServer {
                     continue;
                 String placeName = line.toLowerCase();
                 dictionary.add(placeName);
+                lsh.put(Common.getCounterAtTokenLevel(placeName));
             }
 
         } catch (Exception e) {
@@ -127,7 +132,9 @@ public class ModelServerImpl implements ModelServer {
                         s += " " + tokens[t].split("_")[0];
                     String canName = s.substring(1);
                     System.out.println("canName: " + canName); 
-                    if (dictionary.contains(canName.toLowerCase()))
+//                    if (dictionary.contains(canName.toLowerCase()))
+//                    	res.add(canName);
+                    if(lsh.deduplicate(Common.getCounterAtTokenLevel(canName.toLowerCase())).size() > 0)
                     	res.add(canName);
                 }
             }
