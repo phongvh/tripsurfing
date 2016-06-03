@@ -52,7 +52,7 @@ public class ModelServerImpl implements ModelServer {
                 getClassLoader().getResourceAsStream("tripsurfing.dict")));
 
         dictionary = new HashSet<String>();
-        lsh = new LSHTable(2, 8, 100, 999999999, 0.5);
+        lsh = new LSHTable(2, 8, 100, 999999999, 0.6);
         try {
             String line;
             while ((line = reader.readLine()) != null) {
