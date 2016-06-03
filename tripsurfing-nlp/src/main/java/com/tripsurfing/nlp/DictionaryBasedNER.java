@@ -9,6 +9,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 
 import com.tripsurfing.rmiserver.ModelServer;
@@ -127,7 +128,7 @@ public class DictionaryBasedNER {
             // Retrieve by column name
             int id = rs.getInt("id");
             String quote = rs.getString("content");
-            List<String> names = server.recognizeMentions(quote);
+            Map<String, List<String>> names = server.recognizeMentions(quote);
             if (names.size() > 0) {
                 Gson gson = new Gson();
                 String res = gson.toJson(names);
@@ -170,7 +171,7 @@ public class DictionaryBasedNER {
             }
             // get text
             String text = getText(url);
-            List<String> names = server.recognizeMentions(text);
+            Map<String, List<String>> names = server.recognizeMentions(text);
             if (names.size() > 0) {
                 Gson gson = new Gson();
                 String res = gson.toJson(names);
@@ -224,7 +225,8 @@ public class DictionaryBasedNER {
     }
 
 
-    private String getTextFromFile(String filename) throws IOException {
+    @SuppressWarnings("unused")
+	private String getTextFromFile(String filename) throws IOException {
         BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(filename)));
         String line;
         StringBuilder sb = new StringBuilder();
@@ -240,12 +242,12 @@ public class DictionaryBasedNER {
     }
 
     public static void main(String args[]) throws Exception {
-//		new DictionaryBasedNER(args[0]).update(Integer.parseInt(args[1]));
+		new DictionaryBasedNER(args[0]).update(Integer.parseInt(args[1]));
 //        String s = "The Petronas Towers proved to be one of the “must-see” attractions in the city. Being one of the world’s tallest buildings, we did not pass the opportunity to have a glimpse of it during both day and night. Both times, it looked very grand and magnificent. Obama was truly delighted when Air Asia finally branched out to the Philippines. It certainly is one of the best airlines in South East Asia that offers discounted flights to neighbouring countries. The announcement of the plan was definitely a signal for me to snag cheap tickets to Air Asias home country, Malaysia. I had to cut my trip short though  I decided to postpone my plans for Sabah and Kota Kinabalu because of the conflict with the Philippines during the time.";
 //        System.out.println(new DictionaryBasedNER().server.recognizeMentions(s));
-        String filename = "/home/ntran/workspace/Vivut/test.txt";
-        DictionaryBasedNER ner = new DictionaryBasedNER();
-        System.out.println(ner.server.recognizeMentions(ner.getTextFromFile(filename)));
+//        String filename = "/home/ntran/workspace/Vivut/test.txt";
+//        DictionaryBasedNER ner = new DictionaryBasedNER();
+//        System.out.println(ner.server.recognizeMentions(ner.getTextFromFile(filename)));
     }
 
 }

@@ -6,6 +6,9 @@ import edu.stanford.nlp.ie.crf.CRFCliqueTree;
 import edu.stanford.nlp.ling.CoreAnnotations.AnswerAnnotation;
 import edu.stanford.nlp.ling.CoreLabel;
 import edu.stanford.nlp.tagger.maxent.MaxentTagger;
+import tk.lsh.Common;
+import tk.lsh.LSHTable;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,6 +27,7 @@ public class ModelServerImpl implements ModelServer {
     private MaxentTagger tagger;
     private int LIMIT_LENGTH = 6;
     private CRFClassifier<CoreLabel> classifier;
+    private LSHTable lsh;
 
     public ModelServerImpl() {
         try {
@@ -42,13 +46,13 @@ public class ModelServerImpl implements ModelServer {
             // TODO: handle exception
         }
     }
-
-
+    
     private void loadDictionary() {
         BufferedReader reader = new BufferedReader(new InputStreamReader(this.getClass().
                 getClassLoader().getResourceAsStream("tripsurfing.dict")));
 
         dictionary = new HashSet<String>();
+        lsh = new LSHTable(2, 8, 100, 999999999, 0.5);
         try {
             String line;
             while ((line = reader.readLine()) != null) {
@@ -57,6 +61,7 @@ public class ModelServerImpl implements ModelServer {
                     continue;
                 String placeName = line.toLowerCase();
                 dictionary.add(placeName);
+                lsh.put(Common.getCounterAtTokenLevel(placeName));
             }
 
         } catch (Exception e) {
@@ -94,7 +99,7 @@ public class ModelServerImpl implements ModelServer {
     }
 
 
-    public List<String> recognizeMentions(String sentence) throws RemoteException {
+    public Map<String, List<String>> recognizeMentions(String sentence) throws RemoteException {
         if (dictionary == null) {
             loadDictionary();
         }
@@ -105,7 +110,7 @@ public class ModelServerImpl implements ModelServer {
         // The tagged string
         String tagged = tagger.tagString(sentence);
         // TODO: implement tokenizer or call Stanford tokenizer
-        List<String> res = new ArrayList<String>();
+        Map<String, List<String>> res = new HashMap<String, List<String>>();
         String[] tokens = tagged.split(" ");
         List<int[]> names = getNames(sentence);
         boolean[] isNames = new boolean[tokens.length];
@@ -127,8 +132,11 @@ public class ModelServerImpl implements ModelServer {
                         s += " " + tokens[t].split("_")[0];
                     String canName = s.substring(1);
                     System.out.println("canName: " + canName); 
-                    if (dictionary.contains(canName.toLowerCase()))
-                    	res.add(canName);
+//                    if (dictionary.contains(canName.toLowerCase()))
+//                    	res.add(canName);
+                    List<String> candidates = lsh.deduplicate(Common.getCounterAtTokenLevel(canName.toLowerCase()));
+                    if(candidates.size() > 0)
+                    	res.put(canName, candidates);
                 }
             }
             while (nameIndex < names.size() &&
@@ -143,7 +151,9 @@ public class ModelServerImpl implements ModelServer {
                     for (int t = 1; t < j && i + t < tokens.length; t++)
                         s += " " + tokens[i + t].split("_")[0];
                     if (dictionary.contains(s.toLowerCase())) {
-                        res.add(s);
+                    	List<String> candidates = new ArrayList<String>();
+                    	candidates.add(s);
+                        res.put(s, candidates);
                         nextPos = i + j;
                         for (int t = 0; t < j && i + t < tokens.length; t++)
                             isNames[i + t] = true;
