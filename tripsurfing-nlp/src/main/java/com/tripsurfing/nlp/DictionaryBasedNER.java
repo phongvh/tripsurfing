@@ -128,6 +128,10 @@ public class DictionaryBasedNER {
             // Retrieve by column name
             int id = rs.getInt("id");
             String quote = rs.getString("content");
+            // check quote null
+            if (quote == null || quote.length() == 0) {
+                continue;
+            }
             Map<String, List<String>> names = server.recognizeMentions(quote);
             if (names.size() > 0) {
                 Gson gson = new Gson();
@@ -164,6 +168,9 @@ public class DictionaryBasedNER {
             // Retrieve by column name
             int id = rs.getInt("id");
             String url = rs.getString("url");
+            if (url == null || url.length() == 0) {
+                continue;
+            }
             String extracted_places = rs.getString("extracted_places");
             if (extracted_places != null) {
                 System.out.println("already annotated: " + url);
@@ -171,6 +178,9 @@ public class DictionaryBasedNER {
             }
             // get text
             String text = getText(url);
+            if (text == null || text.length() == 0) {
+                continue;
+            }
             Map<String, List<String>> names = server.recognizeMentions(text);
             if (names.size() > 0) {
                 Gson gson = new Gson();
