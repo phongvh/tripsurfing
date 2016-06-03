@@ -209,7 +209,9 @@ public class DictionaryBasedNER {
     private String getText(String url) {
         String text = "";
         try {
-            Document doc = Jsoup.connect(url).get();
+            Document doc = Jsoup.connect(url)
+                    .userAgent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/33.0.1750.152 Safari/537.36")
+                    .get(); // Jsoup.connect(url).get();
             text = removeTags(Jsoup.clean(doc.html(), Whitelist.simpleText()));
         } catch (Exception e) {
             e.printStackTrace();
