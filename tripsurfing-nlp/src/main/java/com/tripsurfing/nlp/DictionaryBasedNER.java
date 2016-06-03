@@ -43,6 +43,7 @@ public class DictionaryBasedNER {
     }
 
     public DictionaryBasedNER(String configFile) {
+        this();
         this.configFile = configFile;
     }
 
