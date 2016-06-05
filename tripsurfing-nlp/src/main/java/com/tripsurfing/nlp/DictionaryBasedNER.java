@@ -1,6 +1,9 @@
 package com.tripsurfing.nlp;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.sql.Connection;
@@ -12,12 +15,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-import com.tripsurfing.rmiserver.ModelServer;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
-import org.jsoup.safety.Whitelist;
 
 import com.google.gson.Gson;
+import com.tripsurfing.rmiserver.ModelServer;
 
 /***
  * This recognizes mentions by dictionaries with longest matching. There are
@@ -212,7 +214,9 @@ public class DictionaryBasedNER {
             Document doc = Jsoup.connect(url)
                     .userAgent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/33.0.1750.152 Safari/537.36")
                     .get(); // Jsoup.connect(url).get();
-            text = removeTags(Jsoup.clean(doc.html(), Whitelist.simpleText()));
+//            text = removeTags(Jsoup.clean(doc.html(), Whitelist.simpleText()));
+            doc.select("a").remove();
+            text = doc.text();
         } catch (Exception e) {
             e.printStackTrace();
             return "UNKNOWN_TEXT";
@@ -220,7 +224,8 @@ public class DictionaryBasedNER {
         return text;
     }
 
-    private String removeTags(String s) {
+    @SuppressWarnings("unused")
+	private String removeTags(String s) {
         String o = "";
         boolean append = true;
         for (int i = 0; i < s.length(); i++) {
