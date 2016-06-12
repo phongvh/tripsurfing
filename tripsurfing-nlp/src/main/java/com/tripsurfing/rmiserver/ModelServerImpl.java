@@ -1,6 +1,26 @@
 package com.tripsurfing.rmiserver;
 
 
+import java.io.BufferedReader;
+import java.io.FileInputStream;
+import java.io.InputStreamReader;
+import java.net.URLDecoder;
+import java.net.URLEncoder;
+import java.rmi.RemoteException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
+
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import edu.stanford.nlp.ie.crf.CRFClassifier;
 import edu.stanford.nlp.ie.crf.CRFCliqueTree;
 import edu.stanford.nlp.ling.CoreAnnotations.AnswerAnnotation;
@@ -8,15 +28,6 @@ import edu.stanford.nlp.ling.CoreLabel;
 import edu.stanford.nlp.tagger.maxent.MaxentTagger;
 import tk.lsh.Common;
 import tk.lsh.LSHTable;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.io.BufferedReader;
-import java.io.FileInputStream;
-import java.io.InputStreamReader;
-import java.rmi.RemoteException;
-import java.util.*;
 
 public class ModelServerImpl implements ModelServer {
 
@@ -28,11 +39,20 @@ public class ModelServerImpl implements ModelServer {
     private int LIMIT_LENGTH = 6;
     private CRFClassifier<CoreLabel> classifier;
     private LSHTable lsh;
+    private Map<String, List<String[]>> googleResults;
+    private int CACHE_SIZE = 100;
+    private String[] keys = new String[CACHE_SIZE];
+    private int oldestKey = -1;
+    private static String google = "http://www.google.com/search?as_q=";
+	private static String charset = "UTF-8";
+	@SuppressWarnings("unused")
+	private static String userAgent = "Googlebot";
 
     public ModelServerImpl() {
         try {
             properties = new Properties();
             properties.load(this.getClass().getClassLoader().getResourceAsStream("vivut.properties"));
+            googleResults = new HashMap<String, List<String[]>>();
         } catch (Exception e) {
             //
         }
@@ -42,6 +62,7 @@ public class ModelServerImpl implements ModelServer {
         try {
             properties = new Properties();
             properties.load(new FileInputStream(configFile));
+            googleResults = new HashMap<String, List<String[]>>();
         } catch (Exception e) {
             // TODO: handle exception
         }
@@ -131,7 +152,7 @@ public class ModelServerImpl implements ModelServer {
                     for (int t = names.get(nameIndex)[0]; t < names.get(nameIndex)[1]; t++)
                         s += " " + tokens[t].split("_")[0];
                     String canName = s.substring(1);
-                    System.out.println("canName: " + canName); 
+//                    System.out.println("canName: " + canName); 
 //                    if (dictionary.contains(canName.toLowerCase()))
 //                    	res.add(canName);
                     List<String> candidates = lsh.deduplicate(Common.getCounterAtTokenLevel(canName.toLowerCase()));
@@ -164,5 +185,49 @@ public class ModelServerImpl implements ModelServer {
             i = nextPos;
         }
         return res;
+    }
+    
+    
+    public List<String[]> getGoogleResults(String query) throws RemoteException {
+    	List<String[]> results = googleResults.get(query);
+    	if(results != null)
+    		return results;
+    	results = new ArrayList<String[]>();
+    	try {
+    		Document doc = Jsoup.connect(google + URLEncoder.encode(query, charset) + "&lr=lang_en")
+                    .userAgent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/33.0.1750.152 Safari/537.36")
+                    .get();
+//    		Document doc = Jsoup
+//    				.connect(
+//    						google + URLEncoder.encode(query, charset)
+//    								+ "&lr=lang_en").userAgent(userAgent).get();
+    		Set<String> snipSet = new HashSet<String>();
+    		String snippet = "";
+			for(Element ele: doc.select("b")) {
+//				System.out.println(ele.html());
+				snipSet.add(ele.text().toLowerCase());
+			}
+			for(String s: snipSet)
+				snippet += s + "::";
+    		for (Element element : doc.select("h3.r")) {
+    			String url = element.html();
+    			if (!url.startsWith("<a href="))
+    				continue;
+//    			System.out.println(element.html());
+    			url = URLDecoder.decode(url.substring(url.indexOf("href=\"") + 6, url.indexOf("\"", url.indexOf("href=\"") + 6)), "UTF-8");
+//    			System.out.println(url);
+//    			String snippet = Jsoup.parse(element.select("span").toString())
+//    					.text();
+    			String title = element.text();
+    			String[] info = new String[]{title, url, snippet};
+    			results.add(info);
+    		}
+    		googleResults.put(query, results);
+			oldestKey = (oldestKey + 1) % CACHE_SIZE;
+			keys[oldestKey] = query;
+		} catch (Exception e) {
+			logger.info(e.getMessage());
+		}
+    	return results;
     }
 }

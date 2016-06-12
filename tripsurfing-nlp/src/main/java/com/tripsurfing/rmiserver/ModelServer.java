@@ -7,4 +7,5 @@ import java.util.Map;
 
 public interface ModelServer extends Remote {
 	public Map<String, List<String>> recognizeMentions(String sentence) throws RemoteException;
+	public List<String[]> getGoogleResults(String query) throws RemoteException;
 }

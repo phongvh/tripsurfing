@@ -1,10 +1,10 @@
 package com.tripsurfing.rmiserver;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.rmi.registry.LocateRegistry;
 import java.rmi.server.UnicastRemoteObject;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ModelServerRunner {
 
