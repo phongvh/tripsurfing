@@ -28,7 +28,6 @@ import org.jsoup.nodes.Document;
 import com.google.gson.Gson;
 import com.tripsurfing.rmiserver.ModelServer;
 
-import cern.colt.Arrays;
 import gnu.trove.map.hash.TObjectDoubleHashMap;
 import gnu.trove.map.hash.TObjectIntHashMap;
 
@@ -509,8 +508,6 @@ public class DictionaryBasedNER {
 	}
 
     public static void main(String args[]) throws Exception {
-    	for(String[] info: new DictionaryBasedNER().summarize("travel Vietnam with 200$", 1000))
-    		System.out.println(Arrays.toString(info));
     	if(args.length < 2)
     		return;
     	else if(args.length == 2) {
