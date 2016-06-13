@@ -514,7 +514,8 @@ public class DictionaryBasedNER {
     		new DictionaryBasedNER(args[0]).update(Integer.parseInt(args[1]));
     	}
     	else {
-    		new DictionaryBasedNER(args[0]).summarize(args[1], Integer.parseInt(args[2]));
+    		Gson gson = new Gson();
+    		System.out.println(gson.toJson(new DictionaryBasedNER(args[0]).summarize(args[1], Integer.parseInt(args[2]))));
     	}
 		
 //        String s = "The Petronas Towers proved to be one of the “must-see” attractions in the city. Being one of the world’s tallest buildings, we did not pass the opportunity to have a glimpse of it during both day and night. Both times, it looked very grand and magnificent. Obama was truly delighted when Air Asia finally branched out to the Philippines. It certainly is one of the best airlines in South East Asia that offers discounted flights to neighbouring countries. The announcement of the plan was definitely a signal for me to snag cheap tickets to Air Asias home country, Malaysia. I had to cut my trip short though  I decided to postpone my plans for Sabah and Kota Kinabalu because of the conflict with the Philippines during the time.";
