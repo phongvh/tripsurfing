@@ -278,9 +278,9 @@ public class DictionaryBasedNER {
      * @return
      * @throws Exception
      */
-    public List<String[]> summarize(String query, int timeout) throws Exception {
+    public List<SearchResult> summarize(String query, int timeout) throws Exception {
     	List<String[]> searchResults = server.getGoogleResults(query);
-    	List<String[]> results = new ArrayList<String[]>();
+    	List<SearchResult> results = new ArrayList<SearchResult>();
     	if(searchResults.size() < 1)
     		return results;
     	List<Thread> threads = new ArrayList<Thread>();
@@ -303,7 +303,7 @@ public class DictionaryBasedNER {
 			if (!thread.isAlive()) {
 				String[] info = qThread.getInfo();
 				if(info != null)
-					results.add(new String[]{info[0], info[1], summarize(info[2], snippets)});
+					results.add(new SearchResult(info[0], info[1], summarize(info[2], snippets)));
 			}
 			else {
 				thread.interrupt();
@@ -496,7 +496,8 @@ public class DictionaryBasedNER {
 		String res = "";
 		for (int i = 0; i < sentences.size(); i++) {
 			if(weight[index[i]] > 0)
-				res += sentenceArr[index[i]] + "\t" + weight[index[i]] + "\n";
+//				res += sentenceArr[index[i]] + "\t" + weight[index[i]] + "\n";
+				res += sentenceArr[index[i]] + "\n";
 			if(res.length() > LIMIT_LENGTH)
 				break;
 		}
@@ -508,14 +509,14 @@ public class DictionaryBasedNER {
 	}
 
     public static void main(String args[]) throws Exception {
+//    	System.out.println(new Gson().toJson(new DictionaryBasedNER().summarize("honeymoon in Thailand", 2000)));
     	if(args.length < 2)
     		return;
     	else if(args.length == 2) {
     		new DictionaryBasedNER(args[0]).update(Integer.parseInt(args[1]));
     	}
     	else {
-    		Gson gson = new Gson();
-    		System.out.println(gson.toJson(new DictionaryBasedNER(args[0]).summarize(args[1], Integer.parseInt(args[2]))));
+    		System.out.println(new Gson().toJson(new DictionaryBasedNER(args[0]).summarize(args[1], Integer.parseInt(args[2]))));
     	}
 		
 //        String s = "The Petronas Towers proved to be one of the “must-see” attractions in the city. Being one of the world’s tallest buildings, we did not pass the opportunity to have a glimpse of it during both day and night. Both times, it looked very grand and magnificent. Obama was truly delighted when Air Asia finally branched out to the Philippines. It certainly is one of the best airlines in South East Asia that offers discounted flights to neighbouring countries. The announcement of the plan was definitely a signal for me to snag cheap tickets to Air Asias home country, Malaysia. I had to cut my trip short though  I decided to postpone my plans for Sabah and Kota Kinabalu because of the conflict with the Philippines during the time.";
@@ -555,4 +556,36 @@ public class DictionaryBasedNER {
 		}
 	}
 
+    class SearchResult {
+    	private String title;
+    	private String url;
+    	private String summary;
+    	
+    	public SearchResult(String title, String url, String summary) {
+    		this.title = StringEscapeUtils.escapeHtml3(title);
+    		this.url = StringEscapeUtils.escapeHtml3(url);
+    		this.summary = StringEscapeUtils.escapeHtml3(summary);
+    	}
+    	
+		public String getTitle() {
+			return title;
+		}
+		public void setTitle(String title) {
+			this.title = title;
+		}
+		public String getUrl() {
+			return url;
+		}
+		public void setUrl(String url) {
+			this.url = url;
+		}
+		public String getSummary() {
+			return summary;
+		}
+		public void setSummary(String summary) {
+			this.summary = summary;
+		}
+    	
+    	
+    }
 }
