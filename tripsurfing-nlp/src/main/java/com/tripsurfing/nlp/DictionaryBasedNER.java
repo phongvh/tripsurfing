@@ -297,219 +297,46 @@ public class DictionaryBasedNER {
 		Set<String> snippets = new HashSet<String>();
 		for(String s: searchResults.get(0)[2].split("::"))
 			snippets.add(s);
+		// summary
+		List<Thread> tThreads = new ArrayList<Thread>();
+		List<SThread> sThreads = new ArrayList<SThread>();
 		for(int i = 0; i < threads.size(); i ++) {
 			QThread qThread = qThreads.get(i);
 			Thread thread = threads.get(i);
 			if (!thread.isAlive()) {
 				String[] info = qThread.getInfo();
-				if(info != null)
-					results.add(new SearchResult(info[0], info[1], summarize(info[2], snippets)));
+				if(info != null) {
+//					results.add(new SearchResult(info[0], info[1], summarize(info[2], snippets)));
+					SThread sThread = new SThread(info[0], info[1], info[2], snippets);
+					sThreads.add(sThread);
+					tThreads.add(new Thread(sThread));
+				}
 			}
 			else {
 				thread.interrupt();
 			} 
 		}
+		for(Thread thread: tThreads)
+			thread.start();
+		for(Thread thread: tThreads)
+			thread.join(timeout);
+		for(int i = 0; i < tThreads.size(); i ++) {
+			SThread sThread = sThreads.get(i);
+			Thread thread = tThreads.get(i);
+			if (!thread.isAlive()) {
+				results.add(new SearchResult(sThread.getTitle(), sThread.getUrl(), sThread.getSummary()));
+			}
+			else {
+				thread.interrupt();
+			}
+		}
     	return results;
     }
     
-    private List<String> getSentences(String text) throws Exception {
-//		text.replaceAll("  ", ". ").replaceAll("\t", ". ");
-		/**
-		 * simple algorithm here...
-		 */
-		BreakIterator iterator = BreakIterator.getSentenceInstance(Locale.US);
-		List<String> sentences = new ArrayList<String>();
-		iterator.setText(text);
-		int start = iterator.first();
-		for (int end = iterator.next(); end != BreakIterator.DONE; start = end, end = iterator.next()) {
-			String sentence = text.substring(start, end);
-			// sentenceWeight.put(sentence, computeWeight(sentence, query,
-			// entityWeight));
-			for (String s : sentence.split("\n")) {
-				s = StringEscapeUtils.unescapeHtml3(s).trim();
-				int x = s.indexOf("\t");
-				int y = s.indexOf("  ");
-				int index;
-				if(x == -1 || y == -1)
-					index = x + y + 1;
-				else
-					index = Math.min(x, y);
-				if(index >= 0) {
-					if(s.indexOf("\t", index + 1) != -1 || s.indexOf("  ", index + 1) != -1) {
-						continue;
-					}
-				}
-				if(s.length() > 2 && s.length() < 320) {
-					sentences.add(s.replaceAll("  ", ". ").replaceAll("\t", ". "));
-				}
-			}
-		}
-		return sentences;
-	}
     
-    private Map<String, Set<String>> init(List<String> sentences, TObjectDoubleHashMap<String> entityWeight) {
-		Map<String, Set<String>> sentence2relEntities = new HashMap<String, Set<String>>();
-		for (String sentence : sentences) {
-			Set<String> entities = new HashSet<String>();
-			for (String entity : entityWeight.keySet()) {
-				if (sentence.indexOf(entity + " ") != -1 || sentence.indexOf(" " + entity) != -1)
-					entities.add(entity);
-			}
-			sentence2relEntities.put(sentence, entities);
-		}
-		return sentence2relEntities;
-	}
-    
-    private double computeOverLap(String src, String dst, TObjectDoubleHashMap<String> entityWeight, Map<String, Set<String>> sentence2relEntities) {
-	    double d = 0, d1 = 0, d2 = 0;
-	    for(String entity: entityWeight.keySet()) {
-//	      if(src.indexOf(entity) != -1) {
-	      if(sentence2relEntities.get(src).contains(entity)) {
-	        double val = entityWeight.get(entity); 
-	        d1 += val;
-//	        if(dst.indexOf(entity) != -1) {
-	        if(sentence2relEntities.get(dst).contains(entity)) {
-	          d += val;
-	          d2 += val;
-	        }
-	      }
-	      else {
-//	        if(dst.indexOf(entity) != -1)
-	        if(sentence2relEntities.get(dst).contains(entity))
-	          d2 += entityWeight.get(entity);
-	      }
-	    }
-//	    return d / Math.min(d1, d2);
-	    return d / (d1 + d2 - d);
-	  }
-    
-    private String summarize(String text, Set<String> snippets) throws Exception {
-		TObjectDoubleHashMap<String> entityWeight = new TObjectDoubleHashMap<String>();
-//		TObjectDoubleHashMap<String> entityDocumentCounter = new TObjectDoubleHashMap<String>();
-		for(String strTok: snippets) {
-			strTok = strTok.toLowerCase();
-			if(strTok.length() < 2) 
-				continue; // noise
-			char ch = strTok.charAt(0);
-			if(!(('a' <= ch && ch <= 'z') || ('A' <= ch && ch <= 'Z')))
-				continue;
-			entityWeight.put(strTok, 2);
-		}
-		List<String> sentences = getSentences(text);
-		Map<String, List<String>> names = server.recognizeMentions(text);
-//		Set<String> checkList = new HashSet<String>();
-		for (String nameText : names.keySet()) {
-			int index = nameText.indexOf("  ");
-			if (index != -1)
-				nameText = nameText.substring(0, index);
-			index = nameText.indexOf("\t");
-			if (index != -1)
-				nameText = nameText.substring(0, index);
-			if (entityWeight.containsKey(nameText))
-				entityWeight.put(nameText, entityWeight.get(nameText) + 1);
-			else
-				entityWeight.put(nameText, 1);
-		}
-	
-//		String[] sortNames = new String[entityWeight.keySet().size()];
-//		int vt = 0;
-//		for (String s : entityWeight.keySet())
-//			sortNames[vt++] = s;
-//		for(String s: sortNames) {
-////			System.out.println(s + " " + entityWeight.get(s) + " " + entityDocumentCounter.get(s));
-//			double d = entityDocumentCounter.get(s);
-//			if(d < 1) d = 1;
-//			entityWeight.put(s, entityWeight.get(s) * Math.exp(d));
-//		}
-//		for (int i = 0; i < sortNames.length; i++) {
-//			for (int j = i + 1; j < sortNames.length; j++) {
-//				if (entityWeight.get(sortNames[i]) < entityWeight.get(sortNames[j])) {
-//					String tmp = sortNames[i];
-//					sortNames[i] = sortNames[j];
-//					sortNames[j] = tmp;
-//				}
-//			}
-//		}
-//		int limit = Math.min(5, sortNames.length);
-////		TObjectDoubleHashMap<String> entityCounter = new TObjectDoubleHashMap<String>();
-////		for(int i = 0; i < limit; i ++)
-////			entityCounter.put(sortNames[i], entityWeight.get(sortNames[i]));
-////		entityWeight = entityCounter;
 
-		/**
-		 * compute overlap between each pair of sentence
-		 */
-		Map<String, Set<String>> sentence2relEntities = init(sentences, entityWeight);
-		TObjectIntHashMap<String> entity2idfWeight = new TObjectIntHashMap<String>();
-		for(String sentence: sentence2relEntities.keySet()) {
-			for(String entity: sentence2relEntities.get(sentence)) {
-				if(entity2idfWeight.containsKey(entity))
-					entity2idfWeight.put(entity, entity2idfWeight.get(entity) + 1);
-				else
-					entity2idfWeight.put(entity, 1);
-			}
-		}
-		for(String entity: entity2idfWeight.keySet()) {
-			entityWeight.put(entity, Math.log(entityWeight.get(entity)) * Math.log((double)sentence2relEntities.size() / entity2idfWeight.get(entity)));
-		}
-		double[][] overlap = new double[sentences.size()][sentences.size()];
-		for (int i = 0; i < sentences.size(); i++) {
-			for (int j = i + 1; j < sentences.size(); j++) {
-				double o = computeOverLap(sentences.get(i), sentences.get(j), entityWeight, sentence2relEntities);
-				if (!Double.isNaN(o)) {
-					overlap[i][j] = o;
-					overlap[j][i] = o;
-				}
-			}
-		}
-
-		double weight[] = new double[sentences.size()];
-		String[] sentenceArr = new String[sentences.size()];
-		for (int i = 0; i < sentences.size(); i++) {
-			sentenceArr[i] = sentences.get(i);
-			// compute the weight for this sentence
-			double w = 0;
-			for(String entity: sentence2relEntities.get(sentenceArr[i]))
-				w += entityWeight.get(entity); // weight inside this sentence.
-			for (int j = 0; j < sentences.size(); j++) {
-				if (i != j) {
-					w += overlap[i][j];
-				}
-			}
-			weight[i] = w;
-		}
-
-		// sort sentences by weights
-		int index[] = new int[sentences.size()];
-		for (int i = 0; i < sentences.size(); i++)
-			index[i] = i;
-		for (int i = 0; i < index.length; i++) {
-			for (int j = i + 1; j < index.length; j++) {
-				if (weight[index[i]] < weight[index[j]]) {
-					int tmp = index[i];
-					index[i] = index[j];
-					index[j] = tmp;
-				}
-			}
-		}
-
-		String res = "";
-		for (int i = 0; i < sentences.size(); i++) {
-			if(weight[index[i]] > 0)
-//				res += sentenceArr[index[i]] + "\t" + weight[index[i]] + "\n";
-				res += sentenceArr[index[i]] + "\n";
-			if(res.length() > LIMIT_LENGTH)
-				break;
-		}
-//		if(res.equalsIgnoreCase("")) {
-//			for(int i = 0; i < limit; i ++)
-//				res += sortNames[i] + ", ";
-//		}
-		return res;
-	}
-
-    public static void main(String args[]) throws Exception {
-//    	System.out.println(new Gson().toJson(new DictionaryBasedNER().summarize("honeymoon in Thailand", 2000)));
+	public static void main(String args[]) throws Exception {
+//    	System.out.println(new Gson().toJson(new DictionaryBasedNER().summarize("honeymoon in Singapore", 1000)));
     	if(args.length < 2)
     		return;
     	else if(args.length == 2) {
@@ -550,6 +377,241 @@ public class DictionaryBasedNER {
 	                    .get(); // Jsoup.connect(url).get();
 	            String text = doc.text();
 	            info = new String[]{searchResult[0], searchResult[1], text};
+	        } catch (Exception e) {
+	        	
+	        }
+		}
+	}
+    
+    public class SThread implements Runnable {
+    	private String title;
+    	private String url;
+    	private String text;
+    	private Set<String> snippets;
+    	private String summary;
+		
+		public SThread(String title, String url, String text, Set<String> snippets) {
+			this.title = title;
+			this.url = url;
+			this.text = text;
+			this.snippets = snippets;
+		}
+
+		
+
+		public String getSummary() {
+			return summary;
+		}
+		
+		public String getTitle() {
+			return title;
+		}
+		
+		public String getUrl() {
+			return url;
+		}
+
+
+	    private String summarize(String text, Set<String> snippets) throws Exception {
+			TObjectDoubleHashMap<String> entityWeight = new TObjectDoubleHashMap<String>();
+//			TObjectDoubleHashMap<String> entityDocumentCounter = new TObjectDoubleHashMap<String>();
+			for(String strTok: snippets) {
+				strTok = strTok.toLowerCase();
+				if(strTok.length() < 2) 
+					continue; // noise
+				char ch = strTok.charAt(0);
+				if(!(('a' <= ch && ch <= 'z') || ('A' <= ch && ch <= 'Z')))
+					continue;
+				entityWeight.put(strTok, 2);
+			}
+			List<String> sentences = getSentences(text);
+			Map<String, List<String>> names = server.recognizeMentions(text);
+//			Set<String> checkList = new HashSet<String>();
+			for (String nameText : names.keySet()) {
+				int index = nameText.indexOf("  ");
+				if (index != -1)
+					nameText = nameText.substring(0, index);
+				index = nameText.indexOf("\t");
+				if (index != -1)
+					nameText = nameText.substring(0, index);
+				if (entityWeight.containsKey(nameText))
+					entityWeight.put(nameText, entityWeight.get(nameText) + 1);
+				else
+					entityWeight.put(nameText, 1);
+			}
+		
+//			String[] sortNames = new String[entityWeight.keySet().size()];
+//			int vt = 0;
+//			for (String s : entityWeight.keySet())
+//				sortNames[vt++] = s;
+//			for(String s: sortNames) {
+////				System.out.println(s + " " + entityWeight.get(s) + " " + entityDocumentCounter.get(s));
+//				double d = entityDocumentCounter.get(s);
+//				if(d < 1) d = 1;
+//				entityWeight.put(s, entityWeight.get(s) * Math.exp(d));
+//			}
+//			for (int i = 0; i < sortNames.length; i++) {
+//				for (int j = i + 1; j < sortNames.length; j++) {
+//					if (entityWeight.get(sortNames[i]) < entityWeight.get(sortNames[j])) {
+//						String tmp = sortNames[i];
+//						sortNames[i] = sortNames[j];
+//						sortNames[j] = tmp;
+//					}
+//				}
+//			}
+//			int limit = Math.min(5, sortNames.length);
+////			TObjectDoubleHashMap<String> entityCounter = new TObjectDoubleHashMap<String>();
+////			for(int i = 0; i < limit; i ++)
+////				entityCounter.put(sortNames[i], entityWeight.get(sortNames[i]));
+////			entityWeight = entityCounter;
+
+			/**
+			 * compute overlap between each pair of sentence
+			 */
+			Map<String, Set<String>> sentence2relEntities = init(sentences, entityWeight);
+			TObjectIntHashMap<String> entity2idfWeight = new TObjectIntHashMap<String>();
+			for(String sentence: sentence2relEntities.keySet()) {
+				for(String entity: sentence2relEntities.get(sentence)) {
+					if(entity2idfWeight.containsKey(entity))
+						entity2idfWeight.put(entity, entity2idfWeight.get(entity) + 1);
+					else
+						entity2idfWeight.put(entity, 1);
+				}
+			}
+			for(String entity: entity2idfWeight.keySet()) {
+				entityWeight.put(entity, Math.log(entityWeight.get(entity)) * Math.log((double)sentence2relEntities.size() / entity2idfWeight.get(entity)));
+			}
+			double[][] overlap = new double[sentences.size()][sentences.size()];
+			for (int i = 0; i < sentences.size(); i++) {
+				for (int j = i + 1; j < sentences.size(); j++) {
+					double o = computeOverLap(sentences.get(i), sentences.get(j), entityWeight, sentence2relEntities);
+					if (!Double.isNaN(o)) {
+						overlap[i][j] = o;
+						overlap[j][i] = o;
+					}
+				}
+			}
+
+			double weight[] = new double[sentences.size()];
+			String[] sentenceArr = new String[sentences.size()];
+			for (int i = 0; i < sentences.size(); i++) {
+				sentenceArr[i] = sentences.get(i);
+				// compute the weight for this sentence
+				double w = 0;
+				for(String entity: sentence2relEntities.get(sentenceArr[i]))
+					w += entityWeight.get(entity); // weight inside this sentence.
+				for (int j = 0; j < sentences.size(); j++) {
+					if (i != j) {
+						w += overlap[i][j];
+					}
+				}
+				weight[i] = w;
+			}
+
+			// sort sentences by weights
+			int index[] = new int[sentences.size()];
+			for (int i = 0; i < sentences.size(); i++)
+				index[i] = i;
+			for (int i = 0; i < index.length; i++) {
+				for (int j = i + 1; j < index.length; j++) {
+					if (weight[index[i]] < weight[index[j]]) {
+						int tmp = index[i];
+						index[i] = index[j];
+						index[j] = tmp;
+					}
+				}
+			}
+
+			String res = "";
+			for (int i = 0; i < sentences.size(); i++) {
+				if(weight[index[i]] > 0)
+//					res += sentenceArr[index[i]] + "\t" + weight[index[i]] + "\n";
+					res += sentenceArr[index[i]] + "\n";
+				if(res.length() > LIMIT_LENGTH)
+					break;
+			}
+//			if(res.equalsIgnoreCase("")) {
+//				for(int i = 0; i < limit; i ++)
+//					res += sortNames[i] + ", ";
+//			}
+			return res;
+		}
+
+	    private List<String> getSentences(String text) throws Exception {
+//			text.replaceAll("  ", ". ").replaceAll("\t", ". ");
+			/**
+			 * simple algorithm here...
+			 */
+			BreakIterator iterator = BreakIterator.getSentenceInstance(Locale.US);
+			List<String> sentences = new ArrayList<String>();
+			iterator.setText(text);
+			int start = iterator.first();
+			for (int end = iterator.next(); end != BreakIterator.DONE; start = end, end = iterator.next()) {
+				String sentence = text.substring(start, end);
+				// sentenceWeight.put(sentence, computeWeight(sentence, query,
+				// entityWeight));
+				for (String s : sentence.split("\n")) {
+					s = StringEscapeUtils.unescapeHtml3(s).trim();
+					int x = s.indexOf("\t");
+					int y = s.indexOf("  ");
+					int index;
+					if(x == -1 || y == -1)
+						index = x + y + 1;
+					else
+						index = Math.min(x, y);
+					if(index >= 0) {
+						if(s.indexOf("\t", index + 1) != -1 || s.indexOf("  ", index + 1) != -1) {
+							continue;
+						}
+					}
+					if(s.length() > 2 && s.length() < 320) {
+						sentences.add(s.replaceAll("  ", ". ").replaceAll("\t", ". "));
+					}
+				}
+			}
+			return sentences;
+		}
+	    
+	    private Map<String, Set<String>> init(List<String> sentences, TObjectDoubleHashMap<String> entityWeight) {
+			Map<String, Set<String>> sentence2relEntities = new HashMap<String, Set<String>>();
+			for (String sentence : sentences) {
+				Set<String> entities = new HashSet<String>();
+				for (String entity : entityWeight.keySet()) {
+					if (sentence.indexOf(entity + " ") != -1 || sentence.indexOf(" " + entity) != -1)
+						entities.add(entity);
+				}
+				sentence2relEntities.put(sentence, entities);
+			}
+			return sentence2relEntities;
+		}
+	    
+		private double computeOverLap(String src, String dst, TObjectDoubleHashMap<String> entityWeight,
+				Map<String, Set<String>> sentence2relEntities) {
+			double d = 0, d1 = 0, d2 = 0;
+			for (String entity : entityWeight.keySet()) {
+				// if(src.indexOf(entity) != -1) {
+				if (sentence2relEntities.get(src).contains(entity)) {
+					double val = entityWeight.get(entity);
+					d1 += val;
+					// if(dst.indexOf(entity) != -1) {
+					if (sentence2relEntities.get(dst).contains(entity)) {
+						d += val;
+						d2 += val;
+					}
+				} else {
+					// if(dst.indexOf(entity) != -1)
+					if (sentence2relEntities.get(dst).contains(entity))
+						d2 += entityWeight.get(entity);
+				}
+			}
+			// return d / Math.min(d1, d2);
+			return d / (d1 + d2 - d);
+		}
+
+		public void run() {
+			// TODO Auto-generated method stub
+			try {
+	            summary = summarize(text, snippets);
 	        } catch (Exception e) {
 	        	
 	        }
