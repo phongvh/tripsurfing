@@ -403,8 +403,8 @@ public class DictionaryBasedNER {
     }
     
     public static void main(String args[]) throws Exception {
-    	System.out.println(new Gson().toJson(new DictionaryBasedNER("./src/main/resources/vivut.properties")
-    			.summarize("honeymoon in Thailand", 74, 1000)));
+//    	System.out.println(new Gson().toJson(new DictionaryBasedNER("./src/main/resources/vivut.properties")
+//    			.summarize("honeymoon in Thailand", 74, 2000)));
     	if(args.length < 2)
     		return;
     	else if(args.length == 2) {
