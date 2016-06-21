@@ -47,6 +47,7 @@ public class ModelServerImpl implements ModelServer {
 	private static String charset = "UTF-8";
 	@SuppressWarnings("unused")
 	private static String userAgent = "Googlebot";
+	private static int K = 5;
 	/**
 	 * noisy names
 	 */
@@ -207,9 +208,12 @@ public class ModelServerImpl implements ModelServer {
     
     
     public List<String[]> getGoogleResults(String query) throws RemoteException {
+    	long beginTime = System.currentTimeMillis();
     	List<String[]> results = googleResults.get(query);
-    	if(results != null)
+    	if(results != null) {
+    		System.out.println("get results in: " + (System.currentTimeMillis() - beginTime) + " ms.");
     		return results;
+    	}
     	results = new ArrayList<String[]>();
     	try {
     		Document doc = Jsoup.connect(google + URLEncoder.encode(query, charset) + "&lr=lang_en")
@@ -239,6 +243,8 @@ public class ModelServerImpl implements ModelServer {
     			String title = element.text();
     			String[] info = new String[]{title, url, snippet};
     			results.add(info);
+    			if(results.size() == K)
+    				break;
     		}
     		googleResults.put(query, results);
 			oldestKey = (oldestKey + 1) % CACHE_SIZE;
@@ -248,5 +254,5 @@ public class ModelServerImpl implements ModelServer {
 		}
     	return results;
     }
-
+    
 }

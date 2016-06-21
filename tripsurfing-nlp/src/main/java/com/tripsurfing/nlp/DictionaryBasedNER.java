@@ -15,12 +15,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 
-import org.apache.commons.lang3.StringEscapeUtils;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 
 import com.google.gson.Gson;
 import com.tripsurfing.rmiserver.ModelServer;
+import com.tripsurfing.rmiserver.SearchResult;
 
 
 /***
@@ -252,7 +252,140 @@ public class DictionaryBasedNER {
         return o;
     }
 
+    /**
+     * 
+     * @param link
+     * @param timeout
+     * @return
+     * @throws Exception
+     */
+    public List<SearchResult> summarize(String query, int tripId, int timeout) throws Exception {
+    	List<String[]> searchResults = server.getGoogleResults(query);
+    	List<SearchResult> results = new ArrayList<SearchResult>();
+    	if(searchResults.size() < 1)
+    		return results;
+    	List<Thread> threads = new ArrayList<Thread>();
+    	List<QThread> qThreads = new ArrayList<QThread>();
+    	for(String[] searchResult: searchResults) {
+    		QThread qt = new QThread(searchResult, tripId, server, properties);
+    		qThreads.add(qt);
+    		threads.add(new Thread(qt));
+    	}
+		for(Thread thread: threads) {
+			thread.start();
+		}
+		for(Thread thread: threads) {
+			thread.join(timeout);
+		}
+		// summary
+		for(int i = 0; i < threads.size(); i ++) {
+			QThread qThread = qThreads.get(i);
+			Thread thread = threads.get(i);
+			if (!thread.isAlive()) {
+				results.add(new SearchResult(qThread.getTitle(), qThread.getUrl(), qThread.getPlaces()));
+			}
+			else {
+				thread.interrupt();
+			} 
+		}
+    	return results;
+    }
+    
+    
 
+    /**
+     * 
+     * @author datnb
+     *
+     */
+    public class QThread implements Runnable {
+		private String[] searchResult; // title, url, important keywords
+//		private String text; // title, url, text
+		private int tripId;
+    	private List<Place> places;
+    	private ModelServer server;
+    	private Properties properties;
+		
+		public QThread(String[] searchResult, int tripId, ModelServer server, Properties properties) {
+			this.searchResult = searchResult;
+			this.tripId = tripId;
+			this.server = server;
+			this.properties = properties;
+		}
+
+		
+		public String getTitle() {
+			return searchResult[0];
+		}
+		
+		public String getUrl() {
+			return searchResult[1];
+		}
+		
+		public List<Place> getPlaces() {
+			return places;
+		}
+
+
+		public void run() {
+			// TODO Auto-generated method stub
+			try {
+	            Document doc = Jsoup.connect(searchResult[1])
+	                    .userAgent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/33.0.1750.152 Safari/537.36")
+	                    .get(); // Jsoup.connect(url).get();
+	            String text = doc.text();
+	            places = new SimplePlaceDisambiguation(text, tripId, server, properties).getPlaces();
+	        } catch (Exception e) {
+	        	
+	        }
+		}
+	}
+//    
+//    public class SThread implements Runnable {
+//    	private String title;
+//    	private String url;
+//    	private String text;
+//    	private int tripId;
+//    	private List<Place> places;
+//    	private ModelServer server;
+//    	private Properties properties;
+//		
+//		public SThread(String title, String url, String text, int tripId, ModelServer server, Properties properties) {
+//			this.title = title;
+//			this.url = url;
+//			this.text = text;
+//			this.tripId = tripId;
+//			this.server = server;
+//			this.properties = properties;
+//		}
+//		
+//		
+//		public String getTitle() {
+//			return title;
+//		}
+//		
+//		public String getUrl() {
+//			return url;
+//		}
+//		
+//		public List<Place> getPlaces() {
+//			return places;
+//		}
+//
+//
+//		public void run() {
+//			// TODO Auto-generated method stub
+//			try {
+//	            places = new SimplePlaceDisambiguation(text, tripId, server, properties).getPlaces();
+//	        } catch (Exception e) {
+//	        	
+//	        }
+//		}
+//
+//
+//	}
+//
+//
     @SuppressWarnings("unused")
 	private String getTextFromFile(String filename) throws IOException {
         BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(filename)));
@@ -269,72 +402,9 @@ public class DictionaryBasedNER {
         return sb.toString();
     }
     
-    /**
-     * 
-     * @param link
-     * @param timeout
-     * @return
-     * @throws Exception
-     */
-    public List<SearchResult> summarize(String query, int tripId, int timeout) throws Exception {
-    	List<String[]> searchResults = server.getGoogleResults(query);
-    	List<SearchResult> results = new ArrayList<SearchResult>();
-    	if(searchResults.size() < 1)
-    		return results;
-    	List<Thread> threads = new ArrayList<Thread>();
-    	List<QThread> qThreads = new ArrayList<DictionaryBasedNER.QThread>();
-    	for(String[] searchResult: searchResults) {
-    		QThread qt = new QThread(searchResult);
-    		qThreads.add(qt);
-    		threads.add(new Thread(qt));
-    	}
-		for(Thread thread: threads)
-			thread.start();
-		for(Thread thread: threads)
-			thread.join(timeout);
-//		Set<String> snippets = new HashSet<String>();
-//		for(String s: searchResults.get(0)[2].split("::"))
-//			snippets.add(s);
-		// summary
-		List<Thread> tThreads = new ArrayList<Thread>();
-		List<SThread> sThreads = new ArrayList<SThread>();
-		for(int i = 0; i < threads.size(); i ++) {
-			QThread qThread = qThreads.get(i);
-			Thread thread = threads.get(i);
-			if (!thread.isAlive()) {
-				String[] info = qThread.getInfo();
-				if(info != null) {
-//					results.add(new SearchResult(info[0], info[1], summarize(info[2], snippets)));
-					SThread sThread = new SThread(info[0], info[1], info[2], tripId, server, properties);
-					sThreads.add(sThread);
-					tThreads.add(new Thread(sThread));
-				}
-			}
-			else {
-				thread.interrupt();
-			} 
-		}
-		for(Thread thread: tThreads)
-			thread.start();
-		for(Thread thread: tThreads)
-			thread.join(timeout);
-		for(int i = 0; i < tThreads.size(); i ++) {
-			SThread sThread = sThreads.get(i);
-			Thread thread = tThreads.get(i);
-			if (!thread.isAlive()) {
-				results.add(new SearchResult(sThread.getTitle(), sThread.getUrl(), sThread.getPlaces()));
-			}
-			else {
-				thread.interrupt();
-			}
-		}
-    	return results;
-    }
-    
-    
-
-	public static void main(String args[]) throws Exception {
-//    	System.out.println(new Gson().toJson(new DictionaryBasedNER("./src/main/resources/vivut.properties").summarize("best places to visit in Hanoi", 74, 1000)));
+    public static void main(String args[]) throws Exception {
+    	System.out.println(new Gson().toJson(new DictionaryBasedNER("./src/main/resources/vivut.properties")
+    			.summarize("honeymoon in Thailand", 74, 1000)));
     	if(args.length < 2)
     		return;
     	else if(args.length == 2) {
@@ -352,115 +422,4 @@ public class DictionaryBasedNER {
 //        System.out.println(ner.server.recognizeMentions(ner.getTextFromFile(filename)));
     }
     
-    /**
-     * 
-     * @author datnb
-     *
-     */
-    public class QThread implements Runnable {
-		private String[] searchResult; // title, url, important keywords
-		private String[] info; // title, url, text
-		
-		public QThread(String[] searchResult) {
-			this.searchResult = searchResult;
-		}
-
-		
-
-		public String[] getInfo() {
-			return info;
-		}
-
-
-		public void run() {
-			// TODO Auto-generated method stub
-			try {
-	            Document doc = Jsoup.connect(searchResult[1])
-	                    .userAgent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/33.0.1750.152 Safari/537.36")
-	                    .get(); // Jsoup.connect(url).get();
-	            String text = doc.text();
-	            info = new String[]{searchResult[0], searchResult[1], text};
-	        } catch (Exception e) {
-	        	
-	        }
-		}
-	}
-    
-    public class SThread implements Runnable {
-    	private String title;
-    	private String url;
-    	private String text;
-    	private int tripId;
-    	private List<Place> places;
-    	private ModelServer server;
-    	private Properties properties;
-		
-		public SThread(String title, String url, String text, int tripId, ModelServer server, Properties properties) {
-			this.title = title;
-			this.url = url;
-			this.text = text;
-			this.tripId = tripId;
-			this.server = server;
-			this.properties = properties;
-		}
-		
-		
-		public String getTitle() {
-			return title;
-		}
-		
-		public String getUrl() {
-			return url;
-		}
-		
-		public List<Place> getPlaces() {
-			return places;
-		}
-
-
-		public void run() {
-			// TODO Auto-generated method stub
-			try {
-	            places = new SimplePlaceDisambiguation(text, tripId, server, properties).getPlaces();
-	        } catch (Exception e) {
-	        	
-	        }
-		}
-
-
-	}
-
-    class SearchResult {
-    	private String title;
-    	private String url;
-    	private List<Place> places;
-    	
-    	public SearchResult(String title, String url, List<Place> places) {
-    		this.title = StringEscapeUtils.escapeHtml3(title);
-    		this.url = StringEscapeUtils.escapeHtml3(url);
-    		this.setPlaces(places);
-    	}
-    	
-		public String getTitle() {
-			return title;
-		}
-		public void setTitle(String title) {
-			this.title = title;
-		}
-		public String getUrl() {
-			return url;
-		}
-		public void setUrl(String url) {
-			this.url = url;
-		}
-
-		public List<Place> getPlaces() {
-			return places;
-		}
-
-		public void setPlaces(List<Place> places) {
-			this.places = places;
-		}
-    	
-    }
 }
