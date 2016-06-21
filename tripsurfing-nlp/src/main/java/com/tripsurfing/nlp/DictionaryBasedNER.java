@@ -352,7 +352,11 @@ public class DictionaryBasedNER {
 //        System.out.println(ner.server.recognizeMentions(ner.getTextFromFile(filename)));
     }
     
-    
+    /**
+     * 
+     * @author datnb
+     *
+     */
     public class QThread implements Runnable {
 		private String[] searchResult; // title, url, important keywords
 		private String[] info; // title, url, text
