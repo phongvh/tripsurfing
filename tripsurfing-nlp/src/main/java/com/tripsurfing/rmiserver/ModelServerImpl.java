@@ -47,6 +47,22 @@ public class ModelServerImpl implements ModelServer {
 	private static String charset = "UTF-8";
 	@SuppressWarnings("unused")
 	private static String userAgent = "Googlebot";
+	/**
+	 * noisy names
+	 */
+	private String[] noise = new String[]{"menu", "man", "street", "ocean", "sea", 
+			"food", "road", "tour", "city", "hotel", "house", "bridge", "restaurant",
+		    "menus", "men", "streets", "oceans", "seas", "foods", "roads", "tours", 
+		    "cities", "hotels", "houses", "bridges", "restaurants"};
+	private Set<String> noisyNames;
+	private boolean isNoisyName(String name) {
+		if(noisyNames == null) {
+			noisyNames = new HashSet<String>();
+			for(String s: noise)
+				noisyNames.add(s);
+		}
+		return noisyNames.contains(name);
+	}
 
     public ModelServerImpl() {
         try {
@@ -155,9 +171,11 @@ public class ModelServerImpl implements ModelServer {
 //                    System.out.println("canName: " + canName); 
 //                    if (dictionary.contains(canName.toLowerCase()))
 //                    	res.add(canName);
-                    List<String> candidates = lsh.deduplicate(Common.getCounterAtTokenLevel(canName.toLowerCase()));
-                    if(candidates.size() > 0)
-                    	res.put(canName, candidates);
+                   if(!isNoisyName(canName.toLowerCase())) {
+                	   List<String> candidates = lsh.deduplicate(Common.getCounterAtTokenLevel(canName.toLowerCase()));
+                       if(candidates.size() > 0)
+                    	   res.put(canName, candidates);
+                   }
                 }
             }
             while (nameIndex < names.size() &&
@@ -171,7 +189,7 @@ public class ModelServerImpl implements ModelServer {
                     String s = info[0];
                     for (int t = 1; t < j && i + t < tokens.length; t++)
                         s += " " + tokens[i + t].split("_")[0];
-                    if (dictionary.contains(s.toLowerCase())) {
+                    if (!isNoisyName(s.toLowerCase()) && dictionary.contains(s.toLowerCase())) {
                     	List<String> candidates = new ArrayList<String>();
                     	candidates.add(s);
                         res.put(s, candidates);
@@ -230,4 +248,5 @@ public class ModelServerImpl implements ModelServer {
 		}
     	return results;
     }
+
 }
