@@ -129,7 +129,7 @@ public class DictionaryBasedNER {
         // STEP 2: Register JDBC driver
         Class.forName("com.mysql.jdbc.Driver");
         // STEP 3: Open a connection
-        System.out.println("Connecting to database...");
+//        System.out.println("Connecting to database...");
         Connection conn = DriverManager.getConnection(properties.getProperty("DB_URL"),
                 properties.getProperty("SQL_USER"), properties.getProperty("SQL_PASS"));
         // STEP 4: Execute a query
@@ -168,7 +168,7 @@ public class DictionaryBasedNER {
         // STEP 2: Register JDBC driver
         Class.forName("com.mysql.jdbc.Driver");
         // STEP 3: Open a connection
-        System.out.println("Connecting to database...");
+//        System.out.println("Connecting to database...");
         Connection conn = DriverManager.getConnection(properties.getProperty("DB_URL"),
                 properties.getProperty("SQL_USER"), properties.getProperty("SQL_PASS"));
         // STEP 4: Execute a query

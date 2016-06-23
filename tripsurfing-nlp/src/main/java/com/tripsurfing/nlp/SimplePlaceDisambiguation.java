@@ -52,7 +52,7 @@ public class SimplePlaceDisambiguation {
 		// STEP 2: Register JDBC driver
         Class.forName("com.mysql.jdbc.Driver");
         // STEP 3: Open a connection
-        System.out.println("Connecting to database..." + properties.getProperty("DB_URL"));
+//        System.out.println("Connecting to database..." + properties.getProperty("DB_URL"));
 		Connection conn = DriverManager.getConnection(properties.getProperty("DB_URL"),
                 properties.getProperty("SQL_USER"), properties.getProperty("SQL_PASS"));
         // STEP 4: Execute a query
