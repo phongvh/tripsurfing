@@ -193,9 +193,23 @@ public class SimplePlaceDisambiguation {
 			valueIds += "'" + placeId + "', ";
 		if(valueIds.length() > 2)
 			valueIds = valueIds.substring(0, valueIds.length()-2); // remove ", " in the end.
-		TIntObjectHashMap<Place> placeId2placeObject = new TIntObjectHashMap<Place>();
+		// retrieve images
 		if(valueIds.length() == 0)
 			return;
+		TIntObjectHashMap<List<String>> placeId2images = new TIntObjectHashMap<List<String>>();
+		sql = "SELECT * FROM place_image WHERE place_id in (" + valueIds + ");";
+        rs = stmt.executeQuery(sql);
+        while (rs.next()) {
+        	int placeId = rs.getInt("place_id");
+        	String url = rs.getString("url");
+        	List<String> images = placeId2images.get(placeId);
+        	if(images == null) {
+        		images = new ArrayList<String>();
+        		placeId2images.put(placeId, images);
+        	}
+        	images.add(url);
+        }
+		TIntObjectHashMap<Place> placeId2placeObject = new TIntObjectHashMap<Place>();
 		sql = "SELECT * FROM place WHERE id in (" + valueIds + ");";
         rs = stmt.executeQuery(sql);
         while (rs.next()) {
@@ -230,7 +244,7 @@ public class SimplePlaceDisambiguation {
         					rs.getString("address"), rs.getString("phone"), rs.getString("website"), 
         					rs.getString("email"), rs.getString("url"), rs.getInt("rate_total"), rs.getDouble("rate_avg"), 
         					rs.getString("source"), rs.getInt("by_extension"), rs.getTime("created"), 
-        					rs.getTime("updated")));
+        					rs.getTime("updated"), placeId2images.get(rs.getInt("id"))));
         }
 		stmt.close();
         conn.close();

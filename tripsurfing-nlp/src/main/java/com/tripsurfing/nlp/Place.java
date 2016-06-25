@@ -1,6 +1,7 @@
 package com.tripsurfing.nlp;
 
 import java.sql.Time;
+import java.util.List;
 
 /***
  * 
@@ -50,11 +51,12 @@ public class Place {
 	private int by_extension;
 	private Time created;
 	private Time updated;
+	private List<String> images;
 	
 	public Place(int id, String place_id, int destination_id, String type, String name, 
 			String description, double lat, double lng, String address, String phone,
 			String website, String email, String url, int rate_total, double rate_avg,
-			String source, int by_extension, Time created, Time updated) {
+			String source, int by_extension, Time created, Time updated, List<String> images) {
 		this.setId(id);
 		this.setPlace_id(place_id);
 		this.setDestination_id(destination_id);
@@ -74,6 +76,7 @@ public class Place {
 		this.setBy_extension(by_extension);
 		this.setCreated(created);
 		this.setUpdated(updated);
+		this.setImages(images);
 	}
 
 	public int getId() {
@@ -226,5 +229,13 @@ public class Place {
 
 	public void setUpdated(Time updated) {
 		this.updated = updated;
+	}
+
+	public List<String> getImages() {
+		return images;
+	}
+
+	public void setImages(List<String> images) {
+		this.images = images;
 	}
 }
