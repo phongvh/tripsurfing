@@ -430,10 +430,7 @@ public class DictionaryBasedNER {
 //    	System.out.println(new Gson().toJson(new DictionaryBasedNER("./src/main/resources/vivut.properties")
 //    			.summarize("honeymoon in Vietnam", 74, 1000)));
     	if(args.length < 2) {
-    		if(args[0].equalsIgnoreCase("annotate")) {
-    			new DictionaryBasedNER(args[0]).fullUpdate();
-    		}
-    		return;
+    		new DictionaryBasedNER(args[0]).fullUpdate();
     	}
     	else if(args.length == 2) {
     		new DictionaryBasedNER(args[0]).update(Integer.parseInt(args[1]), false);
