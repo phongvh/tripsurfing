@@ -146,7 +146,7 @@ public class DictionaryBasedNER {
                 continue;
             }
 //            Map<String, List<String>> names = server.recognizeMentions(quote);
-            List<Place> places = new SimplePlaceDisambiguation(quote, -1, server, properties).getPlaces();
+            List<Place> places = new SimplePlaceDisambiguation(quote, tripId, server, properties).getPlaces();
             if (places.size() > 0) {
                 Gson gson = new Gson();
                 String res = gson.toJson(places);
@@ -194,7 +194,7 @@ public class DictionaryBasedNER {
                 continue;
             }
 //            Map<String, List<String>> names = server.recognizeMentions(text);
-            List<Place> places = new SimplePlaceDisambiguation(text, -1, server, properties).getPlaces();
+            List<Place> places = new SimplePlaceDisambiguation(text, tripId, server, properties).getPlaces();
             if (places.size() > 0) {
                 Gson gson = new Gson();
                 String res = gson.toJson(places);
@@ -403,8 +403,8 @@ public class DictionaryBasedNER {
     }
     
     public static void main(String args[]) throws Exception {
-//    	System.out.println(new Gson().toJson(new DictionaryBasedNER("./src/main/resources/vivut.properties")
-//    			.summarize("honeymoon in Vietnam", 74, 500)));
+    	System.out.println(new Gson().toJson(new DictionaryBasedNER("./src/main/resources/vivut.properties")
+    			.summarize("honeymoon in Thailand", 74, 1000)));
     	if(args.length < 2)
     		return;
     	else if(args.length == 2) {
