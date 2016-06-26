@@ -38,7 +38,7 @@ public class ModelServerImpl implements ModelServer {
      * fast and furious
      */
     private boolean FAST_SETTING = true;
-    private int LOWER_BOUND_TOKEN_LENGTH = 1;
+    private int LOWER_BOUND_TOKEN_LENGTH = 1; // only accepts names with at least 2 tokens
 
     private Properties properties;
     private Set<String> dictionary;
@@ -104,7 +104,7 @@ public class ModelServerImpl implements ModelServer {
                 line = line.trim();
                 if (line.length() == 0)
                     continue;
-                String placeName = line.toLowerCase();
+                String placeName = line;//.toLowerCase();
                 dictionary.add(placeName);
                 lsh.put(Common.getCounterAtTokenLevel(placeName));
             }
@@ -205,7 +205,7 @@ public class ModelServerImpl implements ModelServer {
 //                    if (dictionary.contains(canName.toLowerCase()))
 //                    	res.add(canName);
                    if(!isNoisyName(canName.toLowerCase())) {
-                	   List<String> candidates = lsh.deduplicate(Common.getCounterAtTokenLevel(canName.toLowerCase()));
+                	   List<String> candidates = lsh.deduplicate(Common.getCounterAtTokenLevel(canName));
                        if(candidates.size() > 0)
                     	   res.put(canName, candidates);
                    }
@@ -220,19 +220,23 @@ public class ModelServerImpl implements ModelServer {
             if (info.length > 1 && info[1].equalsIgnoreCase("NNP")) {
                 for (int j = LIMIT_LENGTH; j > LOWER_BOUND_TOKEN_LENGTH; j--) {
                     String s = info[0];
-                    for (int t = 1; t < j && i + t < tokens.length; t++)
+                    int len = Math.min(j, tokens.length-i);
+                    if(!tokens[i+len-1].split("_")[1].equalsIgnoreCase("NNP"))
+                    	continue;
+                    for (int t = 1; t < len; t++)
                         s += " " + tokens[i + t].split("_")[0];
-                    System.out.println(s);
-                    if (!isNoisyName(s.toLowerCase())  
-                    		&& (dictionary.contains(s.toLowerCase()) 
-                    				|| lsh.deduplicate(Common.getCounterAtTokenLevel(s.toLowerCase())).size() > 0)) {
-                    	List<String> candidates = new ArrayList<String>();
-                    	candidates.add(s);
-                        res.put(s, candidates);
-                        nextPos = i + j;
-                        for (int t = 0; t < j && i + t < tokens.length; t++)
-                            isNames[i + t] = true;
-                        break;
+                    if (!isNoisyName(s.toLowerCase())) {
+                    	List<String> placeNames = lsh.deduplicate(Common.getCounterAtTokenLevel(s));
+                    	if(placeNames.size() > 0) {
+//                    		List<String> candidates = new ArrayList<String>();
+//                        	candidates.add(s);
+//                            res.put(s, candidates);
+//                            nextPos = i + j;
+//                            for (int t = 0; t < j && i + t < tokens.length; t++)
+//                                isNames[i + t] = true;
+                    		res.put(s, placeNames);
+                            break;
+                    	}
                     }
                 }
             }

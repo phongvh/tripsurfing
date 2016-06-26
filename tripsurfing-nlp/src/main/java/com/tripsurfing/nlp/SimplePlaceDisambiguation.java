@@ -12,6 +12,8 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
+import org.apache.commons.lang3.StringEscapeUtils;
+
 import com.tripsurfing.rmiserver.ModelServer;
 
 import gnu.trove.list.array.TIntArrayList;
@@ -92,6 +94,7 @@ public class SimplePlaceDisambiguation {
 		if(addedIds.length() > 0)
 			sql += " or id in (" + addedIds + ")";
 		sql += ";";
+		sql = StringEscapeUtils.escapeHtml3(sql);
         ResultSet rs = stmt.executeQuery(sql);
 		Map<String, TIntHashSet> place2placeIds = new HashMap<String, TIntHashSet>();
 		TIntObjectHashMap<String> placeId2place = new TIntObjectHashMap<String>();

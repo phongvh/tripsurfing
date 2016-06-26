@@ -233,7 +233,7 @@ public class DictionaryBasedNER {
             doc.select("a").remove();
             text = doc.text();
         } catch (Exception e) {
-            e.printStackTrace();
+//            e.printStackTrace();
             return "UNKNOWN_TEXT";
         }
         return text;
@@ -429,13 +429,14 @@ public class DictionaryBasedNER {
     public static void main(String args[]) throws Exception {
 //    	System.out.println(new Gson().toJson(new DictionaryBasedNER("./src/main/resources/vivut.properties")
 //    			.summarize("honeymoon in Vietnam", 74, 1000)));
-    	if(args.length < 2) {
+//    	new DictionaryBasedNER("./src/main/resources/vivut.properties").fullUpdate();
+    	if(args.length == 1) {
     		new DictionaryBasedNER(args[0]).fullUpdate();
     	}
     	else if(args.length == 2) {
     		new DictionaryBasedNER(args[0]).update(Integer.parseInt(args[1]), false);
     	}
-    	else {
+    	else if(args.length > 3) {
     		System.out.println(new Gson().toJson(new DictionaryBasedNER(args[0]).summarize(args[1], 
     				Integer.parseInt(args[2]), Integer.parseInt(args[3]))));
     	}
