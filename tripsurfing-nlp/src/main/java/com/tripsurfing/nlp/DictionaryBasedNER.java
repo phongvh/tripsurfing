@@ -125,7 +125,7 @@ public class DictionaryBasedNER {
 //		return res;
 //	}
 
-    private void updateAllQuotes(int tripId) throws Exception {
+    private void updateAllQuotes(int tripId, boolean restart) throws Exception {
         // STEP 2: Register JDBC driver
         Class.forName("com.mysql.jdbc.Driver");
         // STEP 3: Open a connection
@@ -134,7 +134,7 @@ public class DictionaryBasedNER {
                 properties.getProperty("SQL_USER"), properties.getProperty("SQL_PASS"));
         // STEP 4: Execute a query
         Statement stmt = conn.createStatement();
-        String sql = "SELECT id, content FROM trip_quote WHERE trip_id=" + tripId + ";";
+        String sql = "SELECT id, content, extracted_places FROM trip_quote WHERE trip_id=" + tripId + ";";
         ResultSet rs = stmt.executeQuery(sql);
         // STEP 5: Extract data from result set
         while (rs.next()) {
@@ -143,6 +143,11 @@ public class DictionaryBasedNER {
             String quote = rs.getString("content");
             // check quote null
             if (quote == null || quote.length() == 0) {
+                continue;
+            }
+            String extracted_places = rs.getString("extracted_places");
+            if (extracted_places != null && !restart) {
+                System.out.println("already annotated: " + quote);
                 continue;
             }
 //            Map<String, List<String>> names = server.recognizeMentions(quote);
@@ -164,7 +169,7 @@ public class DictionaryBasedNER {
         conn.close();
     }
 
-    private void updateAllLinks(int tripId) throws Exception {
+    private void updateAllLinks(int tripId, boolean restart) throws Exception {
         // STEP 2: Register JDBC driver
         Class.forName("com.mysql.jdbc.Driver");
         // STEP 3: Open a connection
@@ -184,7 +189,7 @@ public class DictionaryBasedNER {
                 continue;
             }
             String extracted_places = rs.getString("extracted_places");
-            if (extracted_places != null) {
+            if (extracted_places != null && !restart) {
                 System.out.println("already annotated: " + url);
                 continue;
             }
@@ -213,9 +218,9 @@ public class DictionaryBasedNER {
         conn.close();
     }
 
-    private void update(int tripId) throws Exception {
-        updateAllQuotes(tripId);
-        updateAllLinks(tripId);
+    private void update(int tripId, boolean restart) throws Exception {
+        updateAllQuotes(tripId, restart);
+        updateAllLinks(tripId, restart);
     }
 
     private String getText(String url) {
@@ -402,13 +407,36 @@ public class DictionaryBasedNER {
         return sb.toString();
     }
     
+    private void fullUpdate() throws Exception {
+    	Class.forName("com.mysql.jdbc.Driver");
+        // STEP 3: Open a connection
+//        System.out.println("Connecting to database...");
+        Connection conn = DriverManager.getConnection(properties.getProperty("DB_URL"),
+                properties.getProperty("SQL_USER"), properties.getProperty("SQL_PASS"));
+        // STEP 4: Execute a query
+        Statement stmt = conn.createStatement();
+        String sql = "SELECT id FROM trip";
+        ResultSet rs = stmt.executeQuery(sql);
+        while (rs.next()) {
+            // Retrieve by column name
+            int id = rs.getInt("id");
+            update(id, true);
+        }
+        stmt.close();
+        conn.close();
+    }
+    
     public static void main(String args[]) throws Exception {
 //    	System.out.println(new Gson().toJson(new DictionaryBasedNER("./src/main/resources/vivut.properties")
 //    			.summarize("honeymoon in Vietnam", 74, 1000)));
-    	if(args.length < 2)
+    	if(args.length < 2) {
+    		if(args[0].equalsIgnoreCase("annotate")) {
+    			new DictionaryBasedNER(args[0]).fullUpdate();
+    		}
     		return;
+    	}
     	else if(args.length == 2) {
-    		new DictionaryBasedNER(args[0]).update(Integer.parseInt(args[1]));
+    		new DictionaryBasedNER(args[0]).update(Integer.parseInt(args[1]), false);
     	}
     	else {
     		System.out.println(new Gson().toJson(new DictionaryBasedNER(args[0]).summarize(args[1], 

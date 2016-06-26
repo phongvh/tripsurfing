@@ -218,10 +218,11 @@ public class ModelServerImpl implements ModelServer {
             int nextPos = i + 1;
             String[] info = tokens[i].split("_");
             if (info.length > 1 && info[1].equalsIgnoreCase("NNP")) {
-                for (int j = LIMIT_LENGTH; j >= 0; j--) {
+                for (int j = LIMIT_LENGTH; j > LOWER_BOUND_TOKEN_LENGTH; j--) {
                     String s = info[0];
-                    for (int t = LOWER_BOUND_TOKEN_LENGTH + 1; t < j && i + t < tokens.length; t++)
+                    for (int t = 1; t < j && i + t < tokens.length; t++)
                         s += " " + tokens[i + t].split("_")[0];
+                    System.out.println(s);
                     if (!isNoisyName(s.toLowerCase())  
                     		&& (dictionary.contains(s.toLowerCase()) 
                     				|| lsh.deduplicate(Common.getCounterAtTokenLevel(s.toLowerCase())).size() > 0)) {
