@@ -69,7 +69,7 @@ public class ModelServerImpl implements ModelServer {
 			for(String s: noise)
 				noisyNames.add(s);
 		}
-		return noisyNames.contains(name);
+		return noisyNames.contains(name.toLowerCase());
 	}
 
     public ModelServerImpl() {
@@ -105,6 +105,8 @@ public class ModelServerImpl implements ModelServer {
                 if (line.length() == 0)
                     continue;
                 String placeName = line;//.toLowerCase();
+                if(isNoisyName(placeName))
+                	continue;
                 dictionary.add(placeName);
                 lsh.put(Common.getCounterAtTokenLevel(placeName));
             }

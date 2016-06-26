@@ -152,7 +152,7 @@ public class DictionaryBasedNER {
             }
 //            Map<String, List<String>> names = server.recognizeMentions(quote);
             List<Place> places = new SimplePlaceDisambiguation(quote, tripId, server, properties).getPlaces();
-            if (places.size() > 0) {
+//            if (places.size() > 0) {
                 Gson gson = new Gson();
                 String res = gson.toJson(places);
                 // update
@@ -163,7 +163,7 @@ public class DictionaryBasedNER {
                 updateStatement.setInt(2, id);
                 updateStatement.executeUpdate();
                 updateStatement.close();
-            }
+//            }
         }
         stmt.close();
         conn.close();
@@ -200,19 +200,19 @@ public class DictionaryBasedNER {
             }
 //            Map<String, List<String>> names = server.recognizeMentions(text);
             List<Place> places = new SimplePlaceDisambiguation(text, tripId, server, properties).getPlaces();
-            if (places.size() > 0) {
+//            if (places.size() > 0) {
                 Gson gson = new Gson();
                 String res = gson.toJson(places);
                 // update
                 String cmd = "UPDATE trip_link SET extracted_places=? WHERE id=?;";
-                System.out.println(id + " " + url);
-                System.out.println(res);
+//                System.out.println(id + " " + url);
+//                System.out.println(res);
                 PreparedStatement updateStatement = conn.prepareStatement(cmd);
                 updateStatement.setString(1, res);
                 updateStatement.setInt(2, id);
                 updateStatement.executeUpdate();
                 updateStatement.close();
-            }
+//            }
         }
         stmt.close();
         conn.close();
