@@ -21,6 +21,8 @@ import org.jsoup.nodes.Element;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.tripsurfing.utils.Utils;
+
 import edu.stanford.nlp.ie.crf.CRFClassifier;
 import edu.stanford.nlp.ie.crf.CRFCliqueTree;
 import edu.stanford.nlp.ling.CoreAnnotations.AnswerAnnotation;
@@ -32,6 +34,11 @@ import tk.lsh.LSHTable;
 public class ModelServerImpl implements ModelServer {
 
     private static final Logger logger = LoggerFactory.getLogger(ModelServerImpl.class);
+    /**
+     * fast and furious
+     */
+    private boolean FAST_SETTING = true;
+    private int LOWER_BOUND_TOKEN_LENGTH = 1;
 
     private Properties properties;
     private Set<String> dictionary;
@@ -54,7 +61,7 @@ public class ModelServerImpl implements ModelServer {
 	private String[] noise = new String[]{"menu", "man", "street", "ocean", "sea", 
 			"food", "road", "tour", "city", "hotel", "house", "bridge", "restaurant",
 		    "menus", "men", "streets", "oceans", "seas", "foods", "roads", "tours", 
-		    "cities", "hotels", "houses", "bridges", "restaurants"};
+		    "cities", "hotels", "houses", "bridges", "restaurants", "review", "reviews"};
 	private Set<String> noisyNames;
 	private boolean isNoisyName(String name) {
 		if(noisyNames == null) {
@@ -135,22 +142,47 @@ public class ModelServerImpl implements ModelServer {
         }
         return names;
     }
-
-
-    public Map<String, List<String>> recognizeMentions(String sentence) throws RemoteException {
-        if (dictionary == null) {
-            loadDictionary();
-        }
-        if (tagger == null) {
+    
+    /**
+     * get tags via Stanford tool
+     * @param sentence
+     * @return
+     */
+    private String[] getTags(String sentence) {
+    	if (tagger == null) {
             // Initialize the tagger
             tagger = new MaxentTagger(properties.getProperty("POS_TAGGER"));
         }
         // The tagged string
         String tagged = tagger.tagString(sentence);
+        return tagged.split(" ");
+    }
+    
+    /**
+     * get tags via fast settings
+     */
+    private String[] getFastTags(String sentence) {
+    	String[] tokens = sentence.split(" ");
+    	boolean[] styles = Utils.getStyles(tokens);
+    	String[] pos = new String[styles.length];
+    	for(int i = 0; i < pos.length; i ++) {
+    		pos[i] = tokens[i] + "_";
+    		pos[i] += styles[i] ? "NNP" : "OTHER";
+    	}
+    	return pos;
+    }
+
+
+    public synchronized Map<String, List<String>> recognizeMentions(String sentence) throws RemoteException {
+        if (dictionary == null) {
+            loadDictionary();
+        }
         // TODO: implement tokenizer or call Stanford tokenizer
         Map<String, List<String>> res = new HashMap<String, List<String>>();
-        String[] tokens = tagged.split(" ");
-        List<int[]> names = getNames(sentence);
+        String[] tokens = FAST_SETTING ? getFastTags(sentence) : getTags(sentence);
+        List<int[]> names = new ArrayList<int[]>();
+        if(!FAST_SETTING)
+        	names = getNames(sentence);
         boolean[] isNames = new boolean[tokens.length];
         int nameIndex = 0;
         for (int i = 0; i < tokens.length; ) {
@@ -188,9 +220,11 @@ public class ModelServerImpl implements ModelServer {
             if (info.length > 1 && info[1].equalsIgnoreCase("NNP")) {
                 for (int j = LIMIT_LENGTH; j >= 0; j--) {
                     String s = info[0];
-                    for (int t = 1; t < j && i + t < tokens.length; t++)
+                    for (int t = LOWER_BOUND_TOKEN_LENGTH + 1; t < j && i + t < tokens.length; t++)
                         s += " " + tokens[i + t].split("_")[0];
-                    if (!isNoisyName(s.toLowerCase()) && dictionary.contains(s.toLowerCase())) {
+                    if (!isNoisyName(s.toLowerCase())  
+                    		&& (dictionary.contains(s.toLowerCase()) 
+                    				|| lsh.deduplicate(Common.getCounterAtTokenLevel(s.toLowerCase())).size() > 0)) {
                     	List<String> candidates = new ArrayList<String>();
                     	candidates.add(s);
                         res.put(s, candidates);

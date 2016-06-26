@@ -198,6 +198,96 @@ public class Utils {
         InputStream is = new FileInputStream(new File(filename));
         return readFileByLine(is);
     }
+    
+	/**
+	 * This is to check each word in the given sentence is written in a special style comparing to others or not.
+	 * 
+	 * @param tokens
+	 * @return boolean array b[] where b[i] = true if the i-th word in the given sentence is written in a special style. 
+	 */
+	public static boolean[] getStyles(String[] tokens) {
+		boolean b[] = new boolean[tokens.length];
+		int[] style = new int[tokens.length]; // 0 - not character word, 1 - lowercase, 2 - first character in uppercase, 3 - UPPER
+		for(int i = 0; i < tokens.length; i ++) {
+			String token = tokens[i];
+			if(isWord(token)) {
+				if(isUppercase(token))
+					style[i] = 3;
+				else if(isFirstCharacterUppercase(token))
+					style[i] = 2;
+				else
+					style[i] = 1;
+			}
+			else {
+				style[i] = 0;
+			}
+		}
+		for(int i = 0; i < tokens.length; i ++) {
+			/**
+			 * look backward
+			 */
+			int j = i;
+			while(j >= 0 && (style[j] == style[i] || style[j] == 0))
+				j--;
+			if(j >= 0 && style[j] != 0 && style[j] < style[i]) {
+				b[i] = true;
+				continue;
+			}
+			/**
+			 * look forward
+			 */
+			j = i;
+			while(j < tokens.length && (style[j] == style[i] || style[j] == 0))
+				j ++;
+			if(j < tokens.length && style[j] != 0 && style[j] < style[i]) {
+				b[i] = true;
+			}
+		}
+		return b;
+	}
+	
+	/**
+	 * @param word
+	 * @return true if word is a character word (e.g. hello ---- not ab1cd)
+	 */
+	public static boolean isWord(String word) {
+		if(word == null || word.length() < 1)
+			return false;
+		for(int i = 0; i < word.length(); i ++) {
+			char ch = word.charAt(i);
+			if(!('A' <= ch && ch <= 'Z') && !('a' <= ch && ch <= 'z'))
+				return false;
+		}
+		return true;
+	}
+	
+	/**
+	 * 
+	 * @param s
+	 * @return true if the first character from 'A' to 'Z'
+	 */
+	public static boolean isFirstCharacterUppercase(String s) {
+		if(s == null || s.length() < 1)
+			return false;
+		char ch = s.charAt(0);
+		return 'A' <= ch && ch <= 'Z';
+	}
+	
+	/**
+	 * 
+	 * @param word
+	 * @return true if all characters of words is in uppercase form.
+	 */
+	public static boolean isUppercase(String word) {
+		if(word == null || word.length() < 1)
+			return false;
+		for(int i = 0; i < word.length(); i ++) {
+			char ch = word.charAt(i);
+			if(!('A' <= ch && ch <= 'Z'))
+				return false;
+		}
+		return true;
+	}
 
     public static void main(String args[]) throws Exception {
 //    	getAllLinks("http://www.tripadvisor.com/Tourism-g293924-Hanoi-Vacations.html", "g293924-Hanoi");
