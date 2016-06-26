@@ -196,18 +196,20 @@ public class SimplePlaceDisambiguation {
 		// retrieve images
 		if(valueIds.length() == 0)
 			return;
-		TIntObjectHashMap<List<String>> placeId2images = new TIntObjectHashMap<List<String>>();
+		TIntObjectHashMap<List<PlaceImage>> placeId2images = new TIntObjectHashMap<List<PlaceImage>>();
 		sql = "SELECT * FROM place_image WHERE place_id in (" + valueIds + ");";
         rs = stmt.executeQuery(sql);
         while (rs.next()) {
         	int placeId = rs.getInt("place_id");
-        	String url = rs.getString("url");
-        	List<String> images = placeId2images.get(placeId);
+        	PlaceImage pi = new PlaceImage(rs.getInt("id"), placeId, rs.getString("name"), 
+        			rs.getString("path"), rs.getString("url"), rs.getString("type"), 
+        			rs.getInt("width"), rs.getInt("height"), rs.getTime("created"), rs.getTime("updated"));
+        	List<PlaceImage> images = placeId2images.get(placeId);
         	if(images == null) {
-        		images = new ArrayList<String>();
+        		images = new ArrayList<PlaceImage>();
         		placeId2images.put(placeId, images);
         	}
-        	images.add(url);
+        	images.add(pi);
         }
 		TIntObjectHashMap<Place> placeId2placeObject = new TIntObjectHashMap<Place>();
 		sql = "SELECT * FROM place WHERE id in (" + valueIds + ");";

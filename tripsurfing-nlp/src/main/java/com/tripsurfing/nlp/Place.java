@@ -51,12 +51,12 @@ public class Place {
 	private int by_extension;
 	private Time created;
 	private Time updated;
-	private List<String> images;
+	private List<PlaceImage> images;
 	
 	public Place(int id, String place_id, int destination_id, String type, String name, 
 			String description, double lat, double lng, String address, String phone,
 			String website, String email, String url, int rate_total, double rate_avg,
-			String source, int by_extension, Time created, Time updated, List<String> images) {
+			String source, int by_extension, Time created, Time updated, List<PlaceImage> images) {
 		this.setId(id);
 		this.setPlace_id(place_id);
 		this.setDestination_id(destination_id);
@@ -231,11 +231,11 @@ public class Place {
 		this.updated = updated;
 	}
 
-	public List<String> getImages() {
+	public List<PlaceImage> getImages() {
 		return images;
 	}
 
-	public void setImages(List<String> images) {
+	public void setImages(List<PlaceImage> images) {
 		this.images = images;
 	}
 }
