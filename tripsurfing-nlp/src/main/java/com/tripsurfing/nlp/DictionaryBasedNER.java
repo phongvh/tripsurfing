@@ -152,9 +152,13 @@ public class DictionaryBasedNER {
             }
 //            Map<String, List<String>> names = server.recognizeMentions(quote);
             List<Place> places = new SimplePlaceDisambiguation(quote, tripId, server, properties).getPlaces();
+            List<Integer> placeIds = new ArrayList<Integer>();
+            for(Place place: places) {
+            	placeIds.add(place.getId());
+            }
 //            if (places.size() > 0) {
                 Gson gson = new Gson();
-                String res = gson.toJson(places);
+                String res = gson.toJson(placeIds);
                 // update
                 String cmd = "UPDATE trip_quote SET extracted_places=? WHERE id=?;";
 //		        System.out.println(id + " " + quote);
@@ -200,9 +204,13 @@ public class DictionaryBasedNER {
             }
 //            Map<String, List<String>> names = server.recognizeMentions(text);
             List<Place> places = new SimplePlaceDisambiguation(text, tripId, server, properties).getPlaces();
+            List<Integer> placeIds = new ArrayList<Integer>();
+            for(Place place: places) {
+            	placeIds.add(place.getId());
+            }
 //            if (places.size() > 0) {
                 Gson gson = new Gson();
-                String res = gson.toJson(places);
+                String res = gson.toJson(placeIds);
                 // update
                 String cmd = "UPDATE trip_link SET extracted_places=? WHERE id=?;";
 //                System.out.println(id + " " + url);
@@ -420,6 +428,7 @@ public class DictionaryBasedNER {
         while (rs.next()) {
             // Retrieve by column name
             int id = rs.getInt("id");
+            System.out.println("update trip-" + id);
             update(id, true);
         }
         stmt.close();

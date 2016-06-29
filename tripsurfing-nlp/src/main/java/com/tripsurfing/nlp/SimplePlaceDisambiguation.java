@@ -191,6 +191,7 @@ public class SimplePlaceDisambiguation {
 				placeIds.add(bestId);
 		}
 		// create places;
+		placeIds = new TIntArrayList(new TIntHashSet(placeIds));
 		String valueIds = "";
 		for(int placeId: placeIds.toArray())
 			valueIds += "'" + placeId + "', ";
