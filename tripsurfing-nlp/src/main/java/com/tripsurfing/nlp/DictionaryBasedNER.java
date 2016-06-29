@@ -38,92 +38,19 @@ public class DictionaryBasedNER {
 //    private int LIMIT_LENGTH = 600;
     private Properties properties;
     
-//    public DictionaryBasedNER() {
-//        String host = "localhost";
-//        try {
-//            Registry registry = LocateRegistry.getRegistry(host, 52478);
-//            server = (ModelServer) registry.lookup("TkServer_" + host);
-//        } catch (Exception e) {
-//            // TODO: handle exception
-//        }
-//    }
-
     public DictionaryBasedNER(String configFile) {
         this.configFile = configFile;
         String host = "localhost";
         try {
-            Registry registry = LocateRegistry.getRegistry(host, 52478);
-            server = (ModelServer) registry.lookup("TkServer_" + host);
-            properties = new Properties();
+        	properties = new Properties();
             properties.load(new FileInputStream(this.configFile));
+            Registry registry = LocateRegistry.getRegistry(host, Integer.parseInt(properties.getProperty("RMI_PORT")));
+            server = (ModelServer) registry.lookup("TkServer_" + host);
         } catch (Exception e) {
             // TODO: handle exception
         }
     }
 
-//	public DictionarybasedNER(int LIMIT_LENGTH) {
-//		this.LIMIT_LENGTH = LIMIT_LENGTH;
-//		loadDictionary();
-//	}
-//
-//	private void loadDictionary() {
-//		dictionary = new HashSet<String>();
-//		Properties properties = new Properties();
-//		try {
-//			properties.load(new FileInputStream(configFile));
-//			File folder = new File(properties.getProperty("SOURCE_LINKS"));
-//			for (File file : folder.listFiles()) {
-//				for (String line : Utils.readFileByLine(file.getPath())) {
-//					// http://www.tripadvisor.com/Restaurant_Review-g2528749-d4104336-Reviews-Waroeng_Santa_Fe-Abang_Bali.html
-//					String str[] = line.split("-");
-//					String name = str[str.length - 2].replaceAll("_", " ");
-//					dictionary.add(name.toLowerCase());
-//					String dstName = str[str.length - 1].split("\\.")[0].replaceAll("_", " ");
-//					dictionary.add(dstName.toLowerCase());
-//				}
-//			}
-//		} catch (Exception ioe) {
-//			ioe.printStackTrace();
-//		}
-//		System.out.println("Loaded: " + dictionary.size() + " names.");
-//	}
-//
-//	public List<String> recognizeMentions(String sentence) {
-//		if(dictionary == null) {
-//			loadDictionary();
-//		}
-//		Properties properties = new Properties();
-//		try {
-//			properties.load(new FileInputStream(configFile));
-//		} catch (Exception e) {
-//			// TODO: handle exception
-//		}
-//		// Initialize the tagger
-//        MaxentTagger tagger = new MaxentTagger(properties.getProperty("POS_TAGGER"));
-//        // The tagged string
-//        String tagged = tagger.tagString(sentence);
-//		// TODO: implement tokenizer or call Stanford tokenizer
-//		List<String> res = new ArrayList<String>();
-//		String[] tokens = tagged.split(" ");
-//		for (int i = 0; i < tokens.length; ) {
-//			int nextPos = i + 1;
-//			String[] info = tokens[i].split("_");
-//			if(info.length > 1 && info[1].equalsIgnoreCase("NNP")) {
-//				for (int j = LIMIT_LENGTH; j >= 0; j--) {
-//					String s = info[0];
-//					for (int t = 1; t < j && i + t < tokens.length; t++)
-//						s += " " + tokens[i + t].split("_")[0];
-//					if (dictionary.contains(s.toLowerCase())) {
-//						res.add(s);
-//						nextPos = i + j;
-//						break;
-//					}
-//				}
-//			}
-//			i = nextPos;
-//		}
-//		return res;
-//	}
 
     private void updateAllQuotes(int tripId, boolean restart) throws Exception {
         // STEP 2: Register JDBC driver
