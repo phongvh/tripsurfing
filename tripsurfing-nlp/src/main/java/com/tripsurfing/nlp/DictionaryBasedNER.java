@@ -364,7 +364,7 @@ public class DictionaryBasedNER {
     
     public static void main(String args[]) throws Exception {
 //    	System.out.println(new Gson().toJson(new DictionaryBasedNER("./src/main/resources/vivut.properties")
-//    			.summarize("honeymoon in Vietnam", 74, 1000)));
+//    			.summarize("Phu Quoc", 74, 1000)));
 //    	new DictionaryBasedNER("./src/main/resources/vivut.properties").fullUpdate();
     	if(args.length == 1) {
     		new DictionaryBasedNER(args[0]).fullUpdate();

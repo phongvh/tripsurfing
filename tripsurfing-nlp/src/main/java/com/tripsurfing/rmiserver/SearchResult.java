@@ -1,9 +1,8 @@
 package com.tripsurfing.rmiserver;
 
 import java.io.Serializable;
+import java.net.URLEncoder;
 import java.util.List;
-
-import org.apache.commons.lang3.StringEscapeUtils;
 
 import com.tripsurfing.nlp.Place;
 
@@ -17,9 +16,22 @@ public class SearchResult implements Serializable {
 	private List<Place> places;
 	
 	public SearchResult(String title, String url, List<Place> places) {
-		this.title = StringEscapeUtils.escapeHtml3(title);
-		this.url = StringEscapeUtils.escapeHtml3(url);
+//		this.title = StringEscapeUtils.escapeHtml3(title);
+//		this.url = StringEscapeUtils.escapeHtml3(url);
+		this.title = escapeXml(title);
+		this.url = escapeXml(url);
 		this.setPlaces(places);
+	}
+	
+	public String escapeXml(String s) {
+		String str = "";
+		try {
+			str = URLEncoder.encode(s.replaceAll("&", "&amp;").replaceAll(">", "&gt;").replaceAll("<", "&lt;").replaceAll("\"", "&quot;").replaceAll("'", "&apos;"), "UTF-8");
+		} catch (Exception e) {
+			// TODO: handle exception
+		}
+		return str;
+//	    return s.replaceAll("&", "&amp;").replaceAll(">", "&gt;").replaceAll("<", "&lt;").replaceAll("\"", "&quot;").replaceAll("'", "&apos;");
 	}
 	
 	public String getTitle() {

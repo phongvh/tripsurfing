@@ -14,6 +14,7 @@ public class ModelServerRunner {
 
     public static void main(String args[]) throws Exception {
         String host = "localhost";
+//        args = new String[]{"./src/main/resources/vivut.properties"};
         ModelServer server;
         server = new ModelServerImpl(args[0]);
         Properties properties = new Properties();

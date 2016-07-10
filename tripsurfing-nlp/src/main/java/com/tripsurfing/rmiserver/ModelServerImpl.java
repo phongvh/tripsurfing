@@ -283,6 +283,7 @@ public class ModelServerImpl implements ModelServer {
 //    					.text();
     			String title = element.text();
     			String[] info = new String[]{title, url, snippet};
+//    			System.out.println(title + "\t abc123 + \t" + url);
     			results.add(info);
     			if(results.size() == K)
     				break;
