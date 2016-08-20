@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -20,12 +21,44 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
+import gnu.trove.map.hash.TObjectDoubleHashMap;
+
 /**
  * Created by ntran on 17.02.16.
  */
 public class Utils {
 
     private static HashMap<String, String> destinationType;
+    private static Map<String, TObjectDoubleHashMap<String>> word2relatedWord;
+    
+    private static void update(String key, String val, double weight) {
+    	TObjectDoubleHashMap<String> mp = word2relatedWord.get(key);
+    	if(mp == null) {
+    		mp = new TObjectDoubleHashMap<String>();
+    		word2relatedWord.put(key, mp);
+    	}
+    	mp.put(val, weight);
+    }
+    
+    public static TObjectDoubleHashMap<String> getRelatedWords(String word) {
+    	if(word2relatedWord == null) {
+    		word2relatedWord = new HashMap<String, TObjectDoubleHashMap<String>>();
+    		//ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+            InputStream is = Utils.class.getClassLoader().getResourceAsStream("wordvec_simwords");
+            try {
+                for (String line : Utils.readFileByLine(is)) {
+                    String[] str = line.split("\t");
+                    for(int i = 1; i < str.length; i += 2) {
+                    	update(str[0], str[i], Double.parseDouble(str[i+1]));
+                    	update(str[i], str[0], Double.parseDouble(str[i+1]));
+                    }
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+    	}
+    	return word2relatedWord.get(word);
+    }
 
     public static String getDestinationType(String tripadvisorId) {
         if (destinationType == null) {
@@ -291,7 +324,12 @@ public class Utils {
 
     public static void main(String args[]) throws Exception {
 //    	getAllLinks("http://www.tripadvisor.com/Tourism-g293924-Hanoi-Vacations.html", "g293924-Hanoi");
-        collectPlaceLinks("./html_sources", "./places_links");
+//        collectPlaceLinks("./html_sources", "./places_links");
+    	TObjectDoubleHashMap<String> mp = getRelatedWords("family");
+    	if(mp != null)
+    		for(String key: mp.keySet())
+    			System.out.println(key + " " + mp.get(key));
+    		
     }
 
 }

@@ -31,10 +31,12 @@ public class SimplePlaceDisambiguation {
 	private List<Place> places;
 	private ModelServer server;
 	private Properties properties;
+	private String targetCountry;
 	
-	public SimplePlaceDisambiguation(String text, int tripId, ModelServer server, Properties properties) {
+	public SimplePlaceDisambiguation(String text, int tripId, String targetCountry, ModelServer server, Properties properties) {
 		this.text = text;
 		this.tripId = tripId;
+		this.targetCountry = targetCountry;
 		this.server = server;
 		this.properties = properties;
 		this.places = new ArrayList<Place>();
@@ -136,31 +138,36 @@ public class SimplePlaceDisambiguation {
 		 * find relevant countries: already added countries + the most prominent country
 		 */
 		Set<String> relevantCountries = new HashSet<String>();
-		for(int placeId: addedPlaceIds.toArray())
-			relevantCountries.add(placeId2country.get(placeId));
-		TObjectIntHashMap<String> countryCounter = new TObjectIntHashMap<String>();
-		for(String name: name2place.keySet()) {
-			for(String placeName: name2place.get(name)) {
-				if(place2placeIds.get(placeName) == null)
-					continue;
-				for(int placeId: place2placeIds.get(placeName).toArray()) {
-					String country = placeId2country.get(placeId);
-					int val = countryCounter.get(country);
-					countryCounter.put(country, val + 1);
+		if(targetCountry != null) {
+			relevantCountries.add(targetCountry);
+		}
+		else {
+			for(int placeId: addedPlaceIds.toArray())
+				relevantCountries.add(placeId2country.get(placeId));
+			TObjectIntHashMap<String> countryCounter = new TObjectIntHashMap<String>();
+			for(String name: name2place.keySet()) {
+				for(String placeName: name2place.get(name)) {
+					if(place2placeIds.get(placeName) == null)
+						continue;
+					for(int placeId: place2placeIds.get(placeName).toArray()) {
+						String country = placeId2country.get(placeId);
+						int val = countryCounter.get(country);
+						countryCounter.put(country, val + 1);
+					}
 				}
 			}
-		}
-		String mostProminentCountry = null;
-		int count = -1;
-		for(String country: countryCounter.keySet()) {
-			int val = countryCounter.get(country);
-			if(count < val) {
-				count = val;
-				mostProminentCountry = country;
+			String mostProminentCountry = null;
+			int count = -1;
+			for(String country: countryCounter.keySet()) {
+				int val = countryCounter.get(country);
+				if(count < val) {
+					count = val;
+					mostProminentCountry = country;
+				}
 			}
+			if(mostProminentCountry != null)
+				relevantCountries.add(mostProminentCountry);
 		}
-		if(mostProminentCountry != null)
-			relevantCountries.add(mostProminentCountry);
 		/**
 		 * update name-placeIds
 		 */

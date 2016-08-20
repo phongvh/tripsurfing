@@ -21,6 +21,9 @@ import org.jsoup.nodes.Document;
 import com.google.gson.Gson;
 import com.tripsurfing.rmiserver.ModelServer;
 import com.tripsurfing.rmiserver.SearchResult;
+import com.tripsurfing.utils.Utils;
+
+import gnu.trove.map.hash.TObjectDoubleHashMap;
 
 
 /***
@@ -78,7 +81,7 @@ public class DictionaryBasedNER {
                 continue;
             }
 //            Map<String, List<String>> names = server.recognizeMentions(quote);
-            List<Place> places = new SimplePlaceDisambiguation(quote, tripId, server, properties).getPlaces();
+            List<Place> places = new SimplePlaceDisambiguation(quote, tripId, null, server, properties).getPlaces();
             List<Integer> placeIds = new ArrayList<Integer>();
             for(Place place: places) {
             	placeIds.add(place.getId());
@@ -130,7 +133,7 @@ public class DictionaryBasedNER {
                 continue;
             }
 //            Map<String, List<String>> names = server.recognizeMentions(text);
-            List<Place> places = new SimplePlaceDisambiguation(text, tripId, server, properties).getPlaces();
+            List<Place> places = new SimplePlaceDisambiguation(text, tripId, null, server, properties).getPlaces();
             List<Integer> placeIds = new ArrayList<Integer>();
             for(Place place: places) {
             	placeIds.add(place.getId());
@@ -193,13 +196,20 @@ public class DictionaryBasedNER {
     }
 
     /**
-     * 
+     * best places in Hanoi::history, family::Vietnam
      * @param link
      * @param timeout
      * @return
      * @throws Exception
      */
-    public List<SearchResult> summarize(String query, int tripId, int timeout) throws Exception {
+    public List<SearchResult> summarize(String queryFull, int tripId, int timeout, boolean activeCategoryFilter) throws Exception {
+    	// 
+    	String info[] = queryFull.split("::");
+    	if(info.length != 3)
+    		return new ArrayList<SearchResult>();
+    	String query = info[0];
+    	if(!activeCategoryFilter)
+    		query += " " + info[1];
     	List<String[]> searchResults = server.getGoogleResults(query);
     	List<SearchResult> results = new ArrayList<SearchResult>();
     	if(searchResults.size() < 1)
@@ -207,7 +217,7 @@ public class DictionaryBasedNER {
     	List<Thread> threads = new ArrayList<Thread>();
     	List<QThread> qThreads = new ArrayList<QThread>();
     	for(String[] searchResult: searchResults) {
-    		QThread qt = new QThread(searchResult, tripId, server, properties);
+    		QThread qt = new QThread(searchResult, tripId, info[2], server, properties);
     		qThreads.add(qt);
     		threads.add(new Thread(qt));
     	}
@@ -228,6 +238,43 @@ public class DictionaryBasedNER {
 				thread.interrupt();
 			} 
 		}
+		if(activeCategoryFilter) {
+			List<SearchResult> filteredResults = new ArrayList<SearchResult>();
+			for(SearchResult rs: results) {
+				List<Place> places = rs.getPlaces();
+				List<Place> filteredPlaces = new ArrayList<Place>();
+				for(Place place: places) {
+					// check if related to a topic
+					String description = place.getDescription();
+					if(description == null)
+						continue;
+					boolean b = false;
+					for(String category: info[1].split(", ")) {
+						if(description.indexOf(category) != -1) {
+							b = true;
+							break;
+						}
+						TObjectDoubleHashMap<String> relatedWords = Utils.getRelatedWords(category);
+						if(relatedWords != null) {
+							for(String relWord: relatedWords.keySet()) {
+								if(description.indexOf(relWord) != -1) {
+									b = true;
+									break;
+								}
+							}
+						}
+						if(b) break;
+					}
+					if(b)
+						filteredPlaces.add(place);
+				}
+				if(!filteredPlaces.isEmpty()) {
+					rs.setPlaces(filteredPlaces);
+					filteredResults.add(rs);
+				}
+			}
+			results = filteredResults;
+		}
     	return results;
     }
     
@@ -242,13 +289,15 @@ public class DictionaryBasedNER {
 		private String[] searchResult; // title, url, important keywords
 //		private String text; // title, url, text
 		private int tripId;
+		private String targetCountry;
     	private List<Place> places;
     	private ModelServer server;
     	private Properties properties;
 		
-		public QThread(String[] searchResult, int tripId, ModelServer server, Properties properties) {
+		public QThread(String[] searchResult, int tripId, String targetCountry, ModelServer server, Properties properties) {
 			this.searchResult = searchResult;
 			this.tripId = tripId;
+			this.targetCountry = targetCountry;
 			this.server = server;
 			this.properties = properties;
 		}
@@ -274,7 +323,7 @@ public class DictionaryBasedNER {
 	                    .userAgent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/33.0.1750.152 Safari/537.36")
 	                    .get(); // Jsoup.connect(url).get();
 	            String text = doc.text();
-	            places = new SimplePlaceDisambiguation(text, tripId, server, properties).getPlaces();
+	            places = new SimplePlaceDisambiguation(text, tripId, targetCountry, server, properties).getPlaces();
 	        } catch (Exception e) {
 	        	
 	        }
@@ -373,8 +422,11 @@ public class DictionaryBasedNER {
     		new DictionaryBasedNER(args[0]).update(Integer.parseInt(args[1]), false);
     	}
     	else if(args.length > 3) {
+    		boolean activateCategoryFilter = false;
+    		if(args.length > 4 && args[4].equalsIgnoreCase("true"))
+    			activateCategoryFilter = true;
     		System.out.println(new Gson().toJson(new DictionaryBasedNER(args[0]).summarize(args[1], 
-    				Integer.parseInt(args[2]), Integer.parseInt(args[3]))));
+    				Integer.parseInt(args[2]), Integer.parseInt(args[3]), activateCategoryFilter)));
     	}
 		
 //        String s = "The Petronas Towers proved to be one of the “must-see” attractions in the city. Being one of the world’s tallest buildings, we did not pass the opportunity to have a glimpse of it during both day and night. Both times, it looked very grand and magnificent. Obama was truly delighted when Air Asia finally branched out to the Philippines. It certainly is one of the best airlines in South East Asia that offers discounted flights to neighbouring countries. The announcement of the plan was definitely a signal for me to snag cheap tickets to Air Asias home country, Malaysia. I had to cut my trip short though  I decided to postpone my plans for Sabah and Kota Kinabalu because of the conflict with the Philippines during the time.";
