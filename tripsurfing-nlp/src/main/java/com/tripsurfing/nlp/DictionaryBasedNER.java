@@ -211,7 +211,10 @@ public class DictionaryBasedNER {
 //    	if(!activeCategoryFilter)
 //    		query += " " + info[1];
     	boolean activeCategoryFilter = !info[1].isEmpty();
+    	long start = System.currentTimeMillis();
     	List<String[]> searchResults = server.getGoogleResults(queryFull);
+    	long time = System.currentTimeMillis() - start;
+    	Utils.connectToGoogle[Utils.queryId][Utils.roundId] = time;
     	List<SearchResult> results = new ArrayList<SearchResult>();
     	if(searchResults.size() < 1)
     		return results;
@@ -229,15 +232,25 @@ public class DictionaryBasedNER {
 			thread.join(timeout);
 		}
 		// summary
+		int counter = 0;
+		long time1 = 0, time2 = 0;
 		for(int i = 0; i < threads.size(); i ++) {
 			QThread qThread = qThreads.get(i);
 			Thread thread = threads.get(i);
 			if (!thread.isAlive()) {
+				time1 = time1 > qThread.getTime1() ? time1: qThread.getTime1();
+				time2 = time2 > qThread.getTime2() ? time2: qThread.getTime2();
+				counter ++;
 				results.add(new SearchResult(qThread.getTitle(), qThread.getUrl(), qThread.getPlaces()));
 			}
 			else {
 				thread.interrupt();
 			} 
+		}
+		Utils.numResults[Utils.queryId][Utils.roundId] = counter;
+		if(counter != 0) {
+			Utils.connectToWebsite[Utils.queryId][Utils.roundId] = time1;
+			Utils.nlp[Utils.queryId][Utils.roundId] = time2;
 		}
 		if(activeCategoryFilter) {
 			List<SearchResult> filteredResults = new ArrayList<SearchResult>();
@@ -295,6 +308,7 @@ public class DictionaryBasedNER {
     	private List<Place> places;
     	private ModelServer server;
     	private Properties properties;
+    	private long time1 = 0, time2 = 0;
 		
 		public QThread(String[] searchResult, int tripId, String targetCountry, ModelServer server, Properties properties) {
 			this.searchResult = searchResult;
@@ -321,14 +335,39 @@ public class DictionaryBasedNER {
 		public void run() {
 			// TODO Auto-generated method stub
 			try {
+				long start = System.currentTimeMillis();
 	            Document doc = Jsoup.connect(searchResult[1])
 	                    .userAgent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/33.0.1750.152 Safari/537.36")
 	                    .get(); // Jsoup.connect(url).get();
 	            String text = doc.text();
+	            long mid = System.currentTimeMillis();
+	            time1 = mid - start;
 	            places = new SimplePlaceDisambiguation(text, tripId, targetCountry, server, properties).getPlaces();
+	            long end = System.currentTimeMillis();
+	            time2 = end - mid;
 	        } catch (Exception e) {
 	        	
 	        }
+		}
+
+
+		public long getTime1() {
+			return time1;
+		}
+
+
+		public void setTime1(long time1) {
+			this.time1 = time1;
+		}
+
+
+		public long getTime2() {
+			return time2;
+		}
+
+
+		public void setTime2(long time2) {
+			this.time2 = time2;
 		}
 	}
 //    
@@ -417,6 +456,27 @@ public class DictionaryBasedNER {
 //    	System.out.println(new Gson().toJson(new DictionaryBasedNER("./src/main/resources/vivut.properties")
 //    			.summarize("Phu Quoc", 74, 1000)));
 //    	new DictionaryBasedNER("./src/main/resources/vivut.properties").fullUpdate();
+    	if(args.length == 0) {
+    		List<String> queries = Utils.readFileByLine("./queries");
+    		for(Utils.queryId = 0; Utils.queryId < queries.size(); Utils.queryId ++) {
+    			for(Utils.roundId = 0; Utils.roundId < Utils.numRounds; Utils.roundId ++) {
+    				System.out.println(queries.get(Utils.queryId) + " " + Utils.queryId + "\t" + Utils.roundId);
+    				long start = System.currentTimeMillis();
+    				// src/main/resources/vivut.properties "where to visit::baby, family::Vietnam" -1 1000
+        			System.out.println(new Gson().toJson(new DictionaryBasedNER("./src/main/resources/vivut.properties")
+        					.summarize(queries.get(Utils.queryId), -1, 30000)));
+        			long time = System.currentTimeMillis() - start;
+        			Utils.sum[Utils.queryId][Utils.roundId] = time;
+    			}
+    		}
+    		System.out.println("NumResults\tConnectGoogle\tConnectWebs\tNLP");
+    		for(int i = 0; i < queries.size(); i ++) {
+    			for(int j = 0; j < Utils.numRounds; j ++) {
+    				System.out.println(Utils.numResults[i][j] + "\t" + Utils.connectToGoogle[i][j]
+    						+ "\t" + Utils.connectToWebsite[i][j] + "\t" + Utils.nlp[i][j]);
+    			}
+    		}
+    	}
     	if(args.length == 1) {
     		new DictionaryBasedNER(args[0]).fullUpdate();
     	}

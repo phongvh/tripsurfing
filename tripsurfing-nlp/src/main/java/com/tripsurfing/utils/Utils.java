@@ -31,6 +31,18 @@ public class Utils {
     private static HashMap<String, String> destinationType;
     private static Map<String, TObjectDoubleHashMap<String>> word2relatedWord;
     
+    /*
+     * This is for debugging 
+     */
+    public static int numRounds = 5;
+    public static long connectToGoogle[][] = new long[10][5];
+    public static long connectToWebsite[][] = new long[10][5];
+    public static long nlp[][] = new long[10][5];
+    public static long sum[][] = new long[10][5];
+    public static int numResults[][] = new int[10][5];
+    public static int queryId = 0;
+    public static int roundId = 0;
+    
     private static void update(String key, String val, double weight) {
     	TObjectDoubleHashMap<String> mp = word2relatedWord.get(key);
     	if(mp == null) {
